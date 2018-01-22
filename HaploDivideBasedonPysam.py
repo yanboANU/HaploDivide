@@ -7,24 +7,74 @@ import string
 import copy
 import contig
 
+def write_Insert(fileName, insert):
+    fout = open("statInsert","w") 
+
+    for (k,v) in sorted(insert.items()): 
+       fout.write(("reference position: %d\n") % (k))
+       for (l,r) in v:
+           fout.write("%s %s\n" % (l,r) )
+       fout.write("\n")
+    fout.close()
+
+def write_Map(fout, nuc):
+    for (key,v) in sorted(nuc.items()):
+        fout.write("%s %s\n"%(key, v)) 
+    fout.write("\n")  
+
+
+def get_unStableRange(insert, mutationOrDeletePos, mergeLen, ll, rr):
+   
+    diffPos = set()
+    for key in insert:
+        if key >ll and key <rr:
+            diffPos.add(key)
+    for key in mutationOrDeletePos:
+        if key >ll and key <rr: 
+            diffPos.add(key)
+    diffPos = sorted(list(diffPos))   
+    checkRange = []
+    i = 0
+    while i < len(diffPos)-1: 
+        s = diffPos[i]
+        assert ( (i +1) < len(diffPos) )
+        while (diffPos[i+1] <= (diffPos[i] + mergeLen)):
+            i = i+1
+            if i >= len(diffPos)-1:
+                break
+            #if i > len(diffPos):
+        i = min(i, len(diffPos)-1)  
+        e = diffPos[i]
+        checkRange.append((s,e))
+        i = i+1
+    print ("position of dismatch:", diffPos)
+    print ("dismatch range:", checkRange)
+    print ("number of dismatch range:", len(checkRange))
+    return checkRange  
+       
+
+
+
+
+
 
 # two position stable and between them don't have insert ==> merge to ==> stable range
-def pos_2_Range(stablePosition, insert):
+def pos_2_Range(stablePos, insert):
     stableRange = []
-    #for i in range(len(stablePosition)-1): 
+    #for i in range(len(stablePos)-1): 
     i = 0
-    while i < len(stablePosition)-1:
-        s = stablePosition[i]
-        e = stablePosition[i]
-        while (stablePosition[i]+1 == stablePosition[i+1]) and (stablePosition[i] not in insert):
+    while i < len(stablePos)-1:
+        s = stablePos[i]
+        e = stablePos[i]
+        while (stablePos[i]+1 == stablePos[i+1]) and (stablePos[i] not in insert):
             i = i+1
-            e = stablePosition[i]
-            if (i >= len(stablePosition)-1):
+            e = stablePos[i]
+            if (i >= len(stablePos)-1):
                 break 
         i = i+1
         stableRange.append((s,e)) 
     ''' version 2
-    for n in stablePosition:
+    for n in stablePos:
         if not stableRange or n > stableRange[-1][-1] + 1:
             stableRange.append([])
         stableRange[-1][1:] = n, #      
@@ -37,86 +87,53 @@ def pos_2_Range(stablePosition, insert):
 #the number of reads  who support insert must larger than cov*0.8
 # and consider some long insert will cause different position insert, and insert number is samll
 # so insert length is considered
-def filter_Insert(insert, pileupcolumns, diff):
+def filter_Insert(insert, pileupcolumns):
     
-    for (p, reads) in pileupcolumns:
+    for p in pileupcolumns:
         if p.pos in insert:
             insertLen = 0
             for (name, seq) in insert[p.pos]:
                 insertLen += len(seq)
-            if len(insert[p.pos]) < p.n * 0.2 and insertLen < p.n*0.2:
+            if len(insert[p.pos]) < p.n * 0.2 and insertLen < p.n*0.5:
             #if len(insert[p.pos]) < p.n * 0.3:
                 insert.pop(p.pos)
+            '''
             else:
                 if p.pos not in diff:
                     diff[p.pos] = []
                 diff[p.pos].append('I')
                 print (p.pos, "insert")
-    
+            ''' 
     return insert
 
 def get_StableRange(samfile, contigs, insert, ll, rr):
+    mutationOrDeletePos = {}
+    stablePos = []  # ref same with all reads position
     pileupcolumns = []
-    stablePosition = []  # ref same with all reads position
-    diff = {}
+    fout = open("statColumns","w") 
     for pileupcolumn in samfile.pileup(): 
+        pileupcolumns.append(pileupcolumn) 
         pp = pileupcolumn.pos
-        # ref pos
         cov = pileupcolumn.n  
-        # n is coverage
-        nucleotide = contigs[0].Seq[pileupcolumn.pos]
-        #print ("\n coverage at base %s = %s" % (pp , cov))  
-        #print ("nucleotide at base %s = %s" % (pp, nucleotide)) # ref pos, n is coverage
+        nucleotide = contigs[0].Seq[pp]
          
         if (pileupcolumn.pos < ll):# and pileupcolumn.pos <2050):
             continue
         if (pileupcolumn.pos > rr):
             break
-        
-        count = 0
-        reads = [] 
-        for pileupread in pileupcolumn.pileups: # pileups is iterator, cann't go back
-            reads.append(pileupread)
-            if pileupread.is_del or pileupread.is_refskip:
-                continue
+        if not is_Mutation(pileupcolumn, nucleotide, mutationOrDeletePos, fout):
+            stablePos.append(pp)
  
-            if pileupread.alignment.query_sequence[pileupread.query_position] == nucleotide:
-                count += 1    
-            # query position is None if is_del or is_refskip is set.
-        pileupcolumns.append((pileupcolumn,reads))  # pileupcolumn's pileups during append lost
-        #if count >= cov*0.8:  # 80% same with reference
+    fout.close()
 
-        if count >= cov*0.7 or len(is_Mutation(pileupcolumn))==1:  # 80% same with reference
-            stablePosition.append(pp)
-        ''' 
-        else:
-            if pp not in diff:
-                diff[pp] = []
-            diff[pp].append('M') 
-            print (pp, "mutation")
-        '''
-    '''
-    insert = filter_Insert(insert, pileupcolumns, diff)   # have more than 20% insert
-    print ("diff:")
-    for (key, value) in sorted(diff.items()):
-        print (key, value) 
-
-    print ("filter insert" , sorted(insert.items())) # diff in python2 and python3, sorted by key
-    print ("stablePosition:", stablePosition)
-    '''
-    stableRange = pos_2_Range(stablePosition, insert)
-
-    print ("stableRange:", stableRange)
+    insert = filter_Insert(insert, pileupcolumns)
+    write_Insert("statInsert", insert) 
     
+    stableRange = pos_2_Range(stablePos, insert)
+
+    print ("stableRange:", stableRange) 
     print ("len(stableRange):", len(stableRange))
-    '''
-    print ("check: ",pileupcolumns[0][0].pos) 
-    print ("check: ",pileupcolumns[0][0].n)
-    print ("check: ",pileupcolumns[0][0].reference_name)
-    print ("check: ",pileupcolumns[0][0].reference_id)
-    print ("check: ",type(pileupcolumns[0][1])) 
-    '''
-    return stableRange, pileupcolumns, diff
+    return stableRange, mutationOrDeletePos
 
 def get_Insert(samfile):
    
@@ -176,23 +193,12 @@ def get_Cov(pos, pileupcolumns):
 
 
 
-def is_Mutation(oneColumn, nucleotide):
-    '''
-    count = 0
-    for pileupread in oneColumn.pileups: # pileups is iterator, cann't go back
-        if pileupread.is_del or pileupread.is_refskip:
-            continue
+def is_Mutation(oneColumn, nucleotide, mutationOrDeletePos, fout):
 
-        if pileupread.alignment.query_sequence[pileupread.query_position] == nucleotide:
-      	    count += 1    
-    # query position is None if is_del or is_refskip is set.
-    #  pileupcolumns.append((pileupcolumn,reads))  # pileupcolumn's pileups during append lost
-    #if count >= cov*0.8:  # 80% same with reference
-
-    if count >= cov*0.7:  # 70% same with reference
-        return stablePosition.append(pp)
-        return False
-    '''
+    pp = oneColumn.pos
+    cov = oneColumn.n
+    nuc = {}
+    supportReadName = {}   
     for pread in oneColumn.pileups:
         if pread.is_del:
             if '*' not in nuc:
@@ -216,22 +222,25 @@ def is_Mutation(oneColumn, nucleotide):
                 supportReadName[cc.upper()] = [] 
             else:
                 nuc[cc.upper()] += 1  
-            supportReadName[cc.upper()].append(pread.alignment.query_name) 
- 
+            supportReadName[cc.upper()].append(pread.alignment.query_name)  
+    fout.write(("reference position: %d\n") % (pp))
+    write_Map(fout, nuc)
     sortedNuc = sorted_Map_Value(nuc)
-    
-    res.append( (sortedNuc[0][0], supportReadName[sortedNuc[0][0]]) )
+    #res.append( (sortedNuc[0][0], supportReadName[sortedNuc[0][0]]) )
 
-    if (sortedNuc[0][1] < p.n*0.7 and sortedNuc[1][1] >= p[0].n*0.2): 
-        print ("SNP mutation")
-        res.append((sortedNuc[1][0], supportReadName[sortedNuc[1][0]]))
-        return False
-    
-        print ("stable")
-    return True
+    if (sortedNuc[0][0] == nucleotide and sortedNuc[0][1] >= cov*0.7):
+        return False  
+        
+    if (sortedNuc[0][1] < cov*0.7 and sortedNuc[1][1] >= cov*0.2): 
+        mutationOrDeletePos[pp] = (nuc, supportReadName)
+        #print ("SNP mutation")
+        #res.append((sortedNuc[1][0], supportReadName[sortedNuc[1][0]]))
+        return True
+    #unfinish, one case: reference is wrong, most >= 0.7 but not nucleotide  
+    return False
 
 
-
+'''
 def check_Mutation(pos, pileupcolumns):
     print ("mutation check")
     recordS = pileupcolumns[0][0].pos
@@ -285,7 +294,7 @@ def check_Mutation(pos, pileupcolumns):
     else:
         print ("stable")
     return res
-
+'''
 def sorted_Map_Value(m):
     sortedM = []
     for k, v in [(k, m[k]) for k in sorted(m, key=m.get, reverse=True)]:
@@ -470,7 +479,7 @@ if __name__ == "__main__":
     contigs = contig.read_Contig(sys.argv[2])
     insert = get_Insert(samfile)
     filter_Insert(insert)
-    stableRange, pileupcolumns, diff = get_StableRange(samfile,contigs,insert)
+    stableRange, mutationOrDeletePos = get_StableRange(samfile,contigs,insert)
     '''
     print ("check: ",pileupcolumns[0][0].pos) 
     print ("check: ",pileupcolumns[0][0].n)
