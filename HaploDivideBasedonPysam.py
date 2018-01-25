@@ -8,7 +8,7 @@ import copy
 import contig
 
 def write_Insert(fileName, insert):
-    fout = open("statInsert","w") 
+    fout = open(fileName,"w") 
 
     for (k,v) in sorted(insert.items()): 
        fout.write(("reference position: %d\n") % (k))
@@ -16,6 +16,22 @@ def write_Insert(fileName, insert):
            fout.write("%s %s\n" % (l,r) )
        fout.write("\n")
     fout.close()
+
+
+def write_MutationOrDelete(fileName, m):
+    fout = open(fileName,"w") 
+
+    for (k,v) in sorted(m.items()): 
+       fout.write(("reference position: %d\n") % (k))
+       #print (v)
+       #for (l,r) in v:
+           #fout.write("%s %s\n" % (l,r) )
+       write_Map(fout,v[0])
+       write_Map(fout,v[1]) 
+       fout.write("\n")
+    fout.close()
+
+
 
 def write_Map(fout, nuc):
     for (key,v) in sorted(nuc.items()):
@@ -110,11 +126,15 @@ def get_StableRange(samfile, contigs, insert, ll, rr):
     mutationOrDeletePos = {}
     stablePos = []  # ref same with all reads position
     pileupcolumns = []
-    fout = open("statColumns","w") 
+    fout = open("statColumns_"+str(ll)+"_"+str(rr),"w") 
     for pileupcolumn in samfile.pileup(): 
         pileupcolumns.append(pileupcolumn) 
         pp = pileupcolumn.pos
         cov = pileupcolumn.n  
+        print (pp)
+        print (len(contigs[0].Seq))
+        if pp > len(contigs[0].Seq):
+            sys.exit()
         nucleotide = contigs[0].Seq[pp]
          
         if (pileupcolumn.pos < ll):# and pileupcolumn.pos <2050):
@@ -126,8 +146,11 @@ def get_StableRange(samfile, contigs, insert, ll, rr):
  
     fout.close()
 
+    write_MutationOrDelete("statMutation_"+str(ll)+"_"+str(rr),mutationOrDeletePos) 
+
+
     insert = filter_Insert(insert, pileupcolumns)
-    write_Insert("statInsert", insert) 
+    write_Insert("statInsert_"+str(ll)+"_"+str(rr), insert) 
     
     stableRange = pos_2_Range(stablePos, insert)
 
@@ -223,7 +246,7 @@ def is_Mutation(oneColumn, nucleotide, mutationOrDeletePos, fout):
             else:
                 nuc[cc.upper()] += 1  
             supportReadName[cc.upper()].append(pread.alignment.query_name)  
-    fout.write(("reference position: %d\n") % (pp))
+    fout.write(("reference position: %d coverage: %s\n") % (pp,cov))
     write_Map(fout, nuc)
     sortedNuc = sorted_Map_Value(nuc)
     #res.append( (sortedNuc[0][0], supportReadName[sortedNuc[0][0]]) )
@@ -477,9 +500,10 @@ if __name__ == "__main__":
    
     # contig
     contigs = contig.read_Contig(sys.argv[2])
-    insert = get_Insert(samfile)
-    filter_Insert(insert)
-    stableRange, mutationOrDeletePos = get_StableRange(samfile,contigs,insert)
+    #insert = get_Insert(samfile)
+    #filter_Insert(insert)
+    insert = {} 
+    stableRange, mutationOrDeletePos = get_StableRange(samfile,contigs,insert,0, len(contigs[0].Seq))
     '''
     print ("check: ",pileupcolumns[0][0].pos) 
     print ("check: ",pileupcolumns[0][0].n)
