@@ -38,6 +38,64 @@ def write_Map(fout, nuc):
         fout.write("%s %s\n"%(key, v)) 
     fout.write("\n")  
 
+'''
+def showObM(ObM, mPos):
+    for (a, b) in ObM:
+        i=a
+        seq1 = ""
+        seq2 = ""  
+        while i<=b:
+            (nuc, supportReadName) = mPos[i]
+'''
+               
+def show_ObSNP(ObSNP, mPos):
+    readsFlag = {} 
+    for i in range(len(ObSNP)):
+        p = ObSNP[i] 
+        (nuc, supportReadName) = mPos[p]
+        sortedNuc = sorted_Map_Value(nuc)
+        a = sortedNuc[0][0]
+        b = sortedNuc[1][0]
+        for readId in supportReadName[a]:
+            if readId not in readsFlag:
+                readsFlag[readId] = [2]*len(ObSNP)
+            readsFlag[readId][i] = 0
+ 
+        for readId in supportReadName[b]:
+            if readId not in readsFlag:
+                readsFlag[readId] = [2]*len(ObSNP)
+            readsFlag[readId][i] = 1
+
+    sortFlag = sorted_Map_Value(readsFlag, False)
+    for ele in sortFlag:
+        print (ele)
+ 
+    return readsFlag       
+
+def phasing_Reads(readsFlag, length):
+    phase1 = set()
+    phase2 = set()
+
+    for i in range(int(length/5)-1):
+        phases = {}
+        for (r, k) in readsFlag.items():
+            f = ''.join( str(j) for j in k[5*i :5*(i+1)] )
+            if f not in phases:
+                phases[f] = 0
+            phases[f] += 1
+        #print (phases)   
+        print (sorted_Map_Value(phases))
+        #break
+
+ 
+     
+
+               
+          
+
+          
+
+
 
 def get_unStableRange(insert, mutationOrDeletePos, mergeLen, ll, rr):
    
@@ -131,8 +189,8 @@ def get_StableRange(samfile, contigs, insert, ll, rr):
         pileupcolumns.append(pileupcolumn) 
         pp = pileupcolumn.pos
         cov = pileupcolumn.n  
-        print (pp)
-        print (len(contigs[0].Seq))
+        #print (pp)
+        #print (len(contigs[0].Seq))
         if pp > len(contigs[0].Seq):
             sys.exit()
         nucleotide = contigs[0].Seq[pp]
@@ -154,9 +212,64 @@ def get_StableRange(samfile, contigs, insert, ll, rr):
     
     stableRange = pos_2_Range(stablePos, insert)
 
+    mutationPos = sorted(mutationOrDeletePos)
+    mutationRange = pos_2_Range(mutationPos ,insert)
+
+
     print ("stableRange:", stableRange) 
     print ("len(stableRange):", len(stableRange))
+    fout2 = open("stableRange_"+str(ll)+"_"+str(rr), "w")
+    for (l,r) in stableRange:
+        fout2.write("%s %s\n" % (l,r))
+    fout2.close() 
+
+    print ("MutationRange:", mutationRange) 
+    print ("len(MutationRange):", len(mutationRange))
+
+    #ObM = get_Ob_MutationRange(mutationRange, stableRange, insert)
+    ObSNP = get_Ob_SNP(mutationPos, stableRange, insert)
+    ################
+    #showObM(ObM,pileupcolumns)  
+    #showObM(ObM, mutationOrDeletePos)  
+    readsFlag = show_ObSNP(ObSNP, mutationOrDeletePos) 
+    phasing_Reads(readsFlag, len(ObSNP))
     return stableRange, mutationOrDeletePos
+
+#stableRange is sorted
+def is_SubRange(i, j, stableRange):
+    for (a,b) in stableRange:
+        if i >= a and j <= b:
+            return True
+        if a >= j:
+            return False
+    return False
+
+def get_Ob_SNP(mutationPos, stableRange, insert):
+    ObSNP = [] 
+    for a in mutationPos:
+        if (a-1 not in insert) and (a+1 not in insert):
+            if is_SubRange(a-5, a-1,stableRange) and is_SubRange(a+1,a+5, stableRange):
+                ObSNP.append(a)
+
+    print ("ObSNP:", ObSNP) 
+    print ("len(ObSNP):", len(ObSNP))
+    return ObSNP
+
+
+def get_Ob_Mutation(mutationRange, stableRange, insert):
+    # [a,b] is sub-range in stableRange
+    ObM = [] 
+    for (a, b) in mutationRange:
+        if (a-1 not in insert) and (b+1 not in insert):
+            if is_SubRange(a-5, a-1,stableRange) and is_SubRange(b+1,b+5, stableRange):
+                ObM.append((a,b))
+
+    print ("ObM:", ObM) 
+    print ("len(ObM):", len(ObM))
+
+    return ObM    
+
+
 
 def get_Insert(samfile):
    
@@ -194,7 +307,7 @@ def get_Insert(samfile):
             i = i+1
         #break  
     #print (Insert)
-    print (sorted(Insert.items())) # diff in python2 and python3
+    #print (sorted(Insert.items())) # diff in python2 and python3
     #print (Insert)
     return Insert   
         #for key, value in sorted
@@ -210,7 +323,7 @@ class Diplo(object):
 def get_Cov(pos, pileupcolumns):
     recordS = pileupcolumns[0][0].pos
     p = pileupcolumns[pos-recordS]
-    print (p[0].pos, pos)
+    #print (p[0].pos, pos)
     assert p[0].pos == pos 
     return p[0].n
 
@@ -268,7 +381,7 @@ def check_Mutation(pos, pileupcolumns):
     print ("mutation check")
     recordS = pileupcolumns[0][0].pos
     p = pileupcolumns[pos-recordS]
-    print (p[0].pos, pos)
+    #print (p[0].pos, pos)
     assert p[0].pos == pos 
     nuc = {}
     supportReadName = {}
@@ -318,9 +431,9 @@ def check_Mutation(pos, pileupcolumns):
         print ("stable")
     return res
 '''
-def sorted_Map_Value(m):
+def sorted_Map_Value(m, R=True):
     sortedM = []
-    for k, v in [(k, m[k]) for k in sorted(m, key=m.get, reverse=True)]:
+    for k, v in [(k, m[k]) for k in sorted(m, key=m.get, reverse=R)]:
         sortedM.append((k,v))  
     return sortedM  
 
@@ -500,10 +613,9 @@ if __name__ == "__main__":
    
     # contig
     contigs = contig.read_Contig(sys.argv[2])
-    #insert = get_Insert(samfile)
-    #filter_Insert(insert)
-    insert = {} 
-    stableRange, mutationOrDeletePos = get_StableRange(samfile,contigs,insert,0, len(contigs[0].Seq))
+    insert = get_Insert(samfile)
+    #insert = {} 
+    stableRange, mutationOrDeletePos = get_StableRange(samfile,contigs,insert,20300, 30300)
     '''
     print ("check: ",pileupcolumns[0][0].pos) 
     print ("check: ",pileupcolumns[0][0].n)
