@@ -38,63 +38,88 @@ def write_Map(fout, nuc):
         fout.write("%s %s\n"%(key, v)) 
     fout.write("\n")  
 
-'''
-def showObM(ObM, mPos):
-    for (a, b) in ObM:
-        i=a
-        seq1 = ""
-        seq2 = ""  
-        while i<=b:
-            (nuc, supportReadName) = mPos[i]
-'''
+#'''
+#def showObM(ObM, mPos):
+#    for (a, b) in ObM:
+#        i=a
+#        seq1 = ""
+#        seq2 = ""  
+#        while i<=b:
+#            (nuc, supportReadName) = mPos[i]
+#'''
                
 def show_ObSNP(ObSNP, mPos):
     readsFlag = {} 
     for i in range(len(ObSNP)):
         p = ObSNP[i] 
         (nuc, supportReadName) = mPos[p]
+        supports = [] #  
         sortedNuc = sorted_Map_Value(nuc)
         a = sortedNuc[0][0]
         b = sortedNuc[1][0]
+        for (k, v) in supportReadName.items():
+            #print (k,v)
+            if k != a and k != b:
+                supports.extend(v)
+        #print (supports)
+        #print ("bbb")
+        #sys.exit("stop")
         for readId in supportReadName[a]:
             if readId not in readsFlag:
-                readsFlag[readId] = [2]*len(ObSNP)
+                readsFlag[readId] = [3]*len(ObSNP)
             readsFlag[readId][i] = 0
  
         for readId in supportReadName[b]:
             if readId not in readsFlag:
-                readsFlag[readId] = [2]*len(ObSNP)
+                readsFlag[readId] = [3]*len(ObSNP)
             readsFlag[readId][i] = 1
 
+        for readId in supports:
+            if readId not in readsFlag:
+                readsFlag[readId] = [3]*len(ObSNP)
+            readsFlag[readId][i] = 2
     sortFlag = sorted_Map_Value(readsFlag, False)
     for ele in sortFlag:
         print (ele)
  
     return readsFlag       
 
-def phasing_Reads(readsFlag, length):
+def phasing_Reads(readsFlag, ObSNP):
     phase1 = set()
     phase2 = set()
+    length = len(ObSNP)
 
-    for i in range(int(length/5)-1):
+#    for i in range(int(length/3)-1):
+#        phases = {}
+#        for (r, k) in readsFlag.items():
+#            f = ''.join( str(j) for j in k[3*i :3*(i+1)] )
+#            if f not in phases:
+#                phases[f] = 0
+#            phases[f] += 1
+#        #print (phases)   
+#        print (sorted_Map_Value(phases))
+#        #break
+    
+    for i in range(length-1):
+
+        readsSupport = {}
         phases = {}
         for (r, k) in readsFlag.items():
-            f = ''.join( str(j) for j in k[5*i :5*(i+1)] )
+            f = ''.join( str(j) for j in k[ i :i+3] )
             if f not in phases:
                 phases[f] = 0
+                readsSupport[f] = []
             phases[f] += 1
+            readsSupport[f].append(r)
         #print (phases)   
-        print (sorted_Map_Value(phases))
-        #break
-
- 
-     
-
-               
-          
-
-          
-
+        
+        print (ObSNP[i:i+3])
+        for ele in (sorted_Map_Value(phases)):
+            if ele[0][0] != '3' and ele[0][1] != '3' and ele[0][2] != '3':
+                print (ele, end="")
+                print (readsSupport[ele[0]])
+        print ("\n")    
+        #break          
 
 
 def get_unStableRange(insert, mutationOrDeletePos, mergeLen, ll, rr):
@@ -125,12 +150,6 @@ def get_unStableRange(insert, mutationOrDeletePos, mergeLen, ll, rr):
     print ("dismatch range:", checkRange)
     print ("number of dismatch range:", len(checkRange))
     return checkRange  
-       
-
-
-
-
-
 
 # two position stable and between them don't have insert ==> merge to ==> stable range
 def pos_2_Range(stablePos, insert):
@@ -147,13 +166,13 @@ def pos_2_Range(stablePos, insert):
                 break 
         i = i+1
         stableRange.append((s,e)) 
-    ''' version 2
-    for n in stablePos:
-        if not stableRange or n > stableRange[-1][-1] + 1:
-            stableRange.append([])
-        stableRange[-1][1:] = n, #      
-    return [','.join(map(str,r)) for r in stableRange]
-    '''
+ #   ''' 
+ #   for n in stablePos:
+ #       if not stableRange or n > stableRange[-1][-1] + 1:
+ #           stableRange.append([])
+ #       stableRange[-1][1:] = n, #      
+ #   return [','.join(map(str,r)) for r in stableRange]
+ #   '''
     return stableRange
 
 
@@ -232,7 +251,7 @@ def get_StableRange(samfile, contigs, insert, ll, rr):
     #showObM(ObM,pileupcolumns)  
     #showObM(ObM, mutationOrDeletePos)  
     readsFlag = show_ObSNP(ObSNP, mutationOrDeletePos) 
-    phasing_Reads(readsFlag, len(ObSNP))
+    phasing_Reads(readsFlag, ObSNP)
     return stableRange, mutationOrDeletePos
 
 #stableRange is sorted
@@ -253,6 +272,11 @@ def get_Ob_SNP(mutationPos, stableRange, insert):
 
     print ("ObSNP:", ObSNP) 
     print ("len(ObSNP):", len(ObSNP))
+    fout = open("SNPdiff","w")
+    for i in range(len(ObSNP)-1):
+        fout.write("%s\n" % (ObSNP[i+1]-ObSNP[i]))
+
+    fout.close()
     return ObSNP
 
 
@@ -367,7 +391,7 @@ def is_Mutation(oneColumn, nucleotide, mutationOrDeletePos, fout):
     if (sortedNuc[0][0] == nucleotide and sortedNuc[0][1] >= cov*0.7):
         return False  
         
-    if (sortedNuc[0][1] < cov*0.7 and sortedNuc[1][1] >= cov*0.2): 
+    if (sortedNuc[0][1] < cov*0.7 and sortedNuc[1][1] >= cov*0.3): 
         mutationOrDeletePos[pp] = (nuc, supportReadName)
         #print ("SNP mutation")
         #res.append((sortedNuc[1][0], supportReadName[sortedNuc[1][0]]))
@@ -615,7 +639,7 @@ if __name__ == "__main__":
     contigs = contig.read_Contig(sys.argv[2])
     insert = get_Insert(samfile)
     #insert = {} 
-    stableRange, mutationOrDeletePos = get_StableRange(samfile,contigs,insert,20300, 30300)
+    stableRange, mutationOrDeletePos = get_StableRange(samfile,contigs,insert,20000, 80000)
     '''
     print ("check: ",pileupcolumns[0][0].pos) 
     print ("check: ",pileupcolumns[0][0].n)
