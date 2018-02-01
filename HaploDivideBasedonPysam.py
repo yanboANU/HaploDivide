@@ -5,7 +5,9 @@ import os
 import pysam
 import string
 import copy
+import time
 import contig
+import tools
 
 def write_Insert(fileName, insert):
     fout = open(fileName,"w") 
@@ -32,11 +34,45 @@ def write_MutationOrDelete(fileName, m):
     fout.close()
 
 
-
+# in tools
 def write_Map(fout, nuc):
     for (key,v) in sorted(nuc.items()):
         fout.write("%s %s\n"%(key, v)) 
     fout.write("\n")  
+
+def filter_Homopolyer(snpD, deletePos, sequence):
+
+    # insert and delete filter should have a little different
+    #print (snpD)
+    #print ("aaa")
+    newD = copy.deepcopy(snpD)
+    for k in snpD: 
+        v =  deletePos[k]
+        '''
+        print ("AAAAA2AAAA")
+        print (sequence[k-5:k+5])
+        print (k, sequence[k])
+        '''
+        nucleotides =  sorted_Map_Value(v[0])
+        #print (nucleotides)
+        n = '*'
+        if nucleotides[0][0] != '*':
+            n = nucleotides[0][0]
+        else:
+            n = nucleotides[1][0]
+        #assert sequence[k] == n
+        if n == sequence[k+1] and n == sequence[k+2]:
+            #print ("case1")
+            newD.remove(k)
+        elif n == sequence[k-1] and n == sequence[k+1]:
+            newD.remove(k)
+            print ("case2")
+        elif n == sequence[k-1] and n == sequence[k-2]:
+            newD.remove(k)
+            print ("case3")
+    #print (newD)
+    #print ("bbbb")
+    return newD
 
 #'''
 #def showObM(ObM, mPos):
@@ -48,7 +84,7 @@ def write_Map(fout, nuc):
 #            (nuc, supportReadName) = mPos[i]
 #'''
                
-def show_ObSNP(ObSNP, mPos):
+def show_SNP(ObSNP, mPos):
     readsFlag = {} 
     for i in range(len(ObSNP)):
         p = ObSNP[i] 
@@ -79,15 +115,58 @@ def show_ObSNP(ObSNP, mPos):
                 readsFlag[readId] = [3]*len(ObSNP)
             readsFlag[readId][i] = 2
     sortFlag = sorted_Map_Value(readsFlag, False)
+    print ("show")
     for ele in sortFlag:
         print (ele)
  
     return readsFlag       
 
-def phasing_Reads(readsFlag, ObSNP):
-    phase1 = set()
-    phase2 = set()
+def phasing(usefulPhases, phase0, phase1, label0, label1, readsSupport):
+     
+    print ("in phasing")
+    print (label0 , label1)
+    print (usefulPhases[0][0], usefulPhases[1][0])
+    if len(label0) == 0: 
+        label0 = usefulPhases[0][0]
+        label1 = usefulPhases[1][0] 
+        #phase0.extend(readsSupport[label0])
+        #phase1.extend(readsSupport[label1])
+    else:
+        assert ( label0[-2:] == usefulPhases[0][0][:2] or  
+                 label0[-2:] == usefulPhases[1][0][:2] )
+        if label0[-2:] == usefulPhases[0][0][:2]: 
+            label0 = label0 + usefulPhases[0][0][-1] 
+            label1 = label1 + usefulPhases[1][0][-1] 
+        elif label0[-2:] == usefulPhases[1][0][:2]:     
+            label0 = label0 + usefulPhases[1][0][-1]
+            label1 = label1 + usefulPhases[0][0][-1]
+        else:
+            print ("error type1")
+
+   
+
+    for v in usefulPhases:
+        if tools.hamming_Distance(v[0], label0[-3:]) < tools.hamming_Distance(v[0], label1[-3:]):
+            phase0.extend(readsSupport[v[0]])
+
+        elif tools.hamming_Distance(v[0], label0[-3:]) > tools.hamming_Distance(v[0], label1[-3:]):
+            phase1.extend(readsSupport[v[0]])
+        else:
+            print ("same distance", v)
+            
+
+    print (label0, len(phase0), phase0)      
+    print (label1, len(phase1), phase1)      
+    print ("intersection:", set(phase0).intersection(set(phase1)) )
+    return label0, label1
+
+def phasing_Reads(readsFlag, ObSNP, fout):
+    label0 =""
+    label1 =""
+    phase0 = []
+    phase1 = []
     length = len(ObSNP)
+    print ("phasing")
 
 #    for i in range(int(length/3)-1):
 #        phases = {}
@@ -114,10 +193,35 @@ def phasing_Reads(readsFlag, ObSNP):
         #print (phases)   
         
         print (ObSNP[i:i+3])
-        for ele in (sorted_Map_Value(phases)):
-            if ele[0][0] != '3' and ele[0][1] != '3' and ele[0][2] != '3':
-                print (ele, end="")
-                print (readsSupport[ele[0]])
+        sortedPhases = sorted_Map_Value(phases)
+        coverage = 0
+        usefulPhases = []
+        for ele in sortedPhases:
+            if len(ele[0]) == 3 and ele[0][0] != '3' and ele[0][1] != '3' and ele[0][2] != '3':
+                #print (ele, end="")
+                #print (readsSupport[ele[0]])
+                coverage += int(ele[0][1])
+                usefulPhases.append(ele)
+        print (usefulPhases)        
+        if (len(usefulPhases)>=2 and usefulPhases[0][1] > coverage * 0.2 and usefulPhases[1][1] > coverage * 0.2
+               and tools.is_Bool_Reverse(usefulPhases[0][0], usefulPhases[1][0]) ):
+            label0, label1 = phasing(usefulPhases, phase0, phase1, label0, label1,readsSupport)
+            #sys.exit()
+        else:
+            print ("not statified")
+            #reclass_Intersection(phase0, phase1, label0, label1, readsFlag)
+            fout.write("%s %s\n" % (label0, phase0))
+            fout.write("%s %s\n" % (label1, phase1))
+            fout.write("\n")
+            #sys.exit()
+
+            label0 = ""
+            label1 = ""
+            #label0 = label0 + 'u'
+            #label1 = label1 + 'u'
+            phase0 = []
+            phase1 = []
+
         print ("\n")    
         #break          
 
@@ -180,79 +284,144 @@ def pos_2_Range(stablePos, insert):
 #the number of reads  who support insert must larger than cov*0.8
 # and consider some long insert will cause different position insert, and insert number is samll
 # so insert length is considered
-def filter_Insert(insert, pileupcolumns):
-    
-    for p in pileupcolumns:
-        if p.pos in insert:
+def filter_Insert(insert, coverage):
+      
+    for p in coverage:
+        if p in insert:
             insertLen = 0
-            for (name, seq) in insert[p.pos]:
+            for (name, seq) in insert[p]:
                 insertLen += len(seq)
-            if len(insert[p.pos]) < p.n * 0.2 and insertLen < p.n*0.5:
+            if len(insert[p]) < coverage[p] * 0.2 and insertLen < coverage[p] * 0.5:
             #if len(insert[p.pos]) < p.n * 0.3:
-                insert.pop(p.pos)
-            '''
-            else:
-                if p.pos not in diff:
-                    diff[p.pos] = []
-                diff[p.pos].append('I')
-                print (p.pos, "insert")
-            ''' 
+                insert.pop(p)
+     
+    '''
+    newInsert = copy.deepcopy(insert)
+    for k in insert:
+        insertLen = 0
+        cov = coverage[k]
+        for (name, seq) in insert[k]:
+            insertLen += len(seq)
+        if len(insert[k]) < cov * 0.2 and insertLen < cov*0.5:
+            #if len(insert[p.pos]) < p.n * 0.3:
+            newInsert.pop(k)
+    '''        
+            
+            #else:
+            #    if p.pos not in diff:
+            #        diff[p.pos] = []
+            #    diff[p.pos].append('I')
+            #    print (p.pos, "insert")
+            # 
     return insert
 
+def get_Insert_Content(snpI, insert, coverage):
+    content = {}
+    character = ['A','T','C','G']
+    highQualityInsert=[]
+    for p in snpI:
+        cp = {} # content in p position
+        support = {}
+        for v in insert[p]:
+            for c in character:
+                if v[1].find(c) != -1:
+                    if c not in cp:
+                        cp[c] = 0
+                        support[c] = []
+                    cp[c] += 1
+                    support[c].append(v[0])
+        sortedCP = (sorted_Map_Value(cp))
+        content[p] = (cp, support)
+        #print (p, cp)
+        if sortedCP[0][1] > coverage[p]*0.3:
+            highQualityInsert.append(p)
+            #print (support[sortedCP[0][0]])
+    print ("high quality insert",highQualityInsert)
+    return content, highQualityInsert
+
+
+
+def get_SNP_MDI(stableRange, mutationPos, deletePos, insert, coverage):
+
+
+    snpM = get_SNP(mutationPos, stableRange, insert, 3)
+    print ("snpM:", snpM) 
+    print ("len(snpM):", len(snpM))
+    
+    snpD = get_SNP(deletePos, stableRange, insert, 3)
+    print ("snpD:", snpD) 
+    print ("len(snpD):", len(snpD))
+
+    newD = filter_Homopolyer(snpD, deletePos, contigs[0].Seq)
+    print ("newD:", newD) 
+    print ("len(newD):", len(newD))
+
+
+    snpI = get_SNP(insert, stableRange, {}, 3)
+    print ("snpI:", snpI) 
+    print ("len(snpI):", len(snpI))
+    insertC, highI = get_Insert_Content(snpI, insert, coverage)
+    newI = filter_Homopolyer(highI, insertC, contigs[0].Seq)
+
+    print ("newI:", newI) 
+    print ("len(newI):", len(newI))
+    #sys.exit()
+
+
+    readsFlag = show_SNP(snpM, mutationPos) 
+    fout = open("phasing_result", "w")
+    phasing_Reads(readsFlag, snpM, fout)
+    fout.close()
+    
+
 def get_StableRange(samfile, contigs, insert, ll, rr):
-    mutationOrDeletePos = {}
+    mutationPos = {}
+    deletePos = {}
     stablePos = []  # ref same with all reads position
     pileupcolumns = []
+    coverage = {}
     fout = open("statColumns_"+str(ll)+"_"+str(rr),"w") 
+    time1 = time.clock()
     for pileupcolumn in samfile.pileup(): 
-        pileupcolumns.append(pileupcolumn) 
+        pileupcolumns.append(pileupcolumn)
+    
+    #time2 = time.clock()
+    #print ("read BAM column by column running time %s Second" % (time2-time1) )
+    
+    #for pileupcolumn in pileupcolumns: 
         pp = pileupcolumn.pos
-        cov = pileupcolumn.n  
+        cov = pileupcolumn.n
+        coverage[pp] = cov
         #print (pp)
         #print (len(contigs[0].Seq))
         if pp > len(contigs[0].Seq):
-            sys.exit()
+            sys.exit("error")
         nucleotide = contigs[0].Seq[pp]
          
         if (pileupcolumn.pos < ll):# and pileupcolumn.pos <2050):
             continue
         if (pileupcolumn.pos > rr):
             break
-        if not is_Mutation(pileupcolumn, nucleotide, mutationOrDeletePos, fout):
+        if not is_Mutation(pileupcolumn, nucleotide, mutationPos, deletePos, fout):
             stablePos.append(pp)
- 
+
+    time3 = time.clock()
+    print ("deal column by column running time %s Second" % (time3-time2) )
     fout.close()
 
-    write_MutationOrDelete("statMutation_"+str(ll)+"_"+str(rr),mutationOrDeletePos) 
-
-
-    insert = filter_Insert(insert, pileupcolumns)
-    write_Insert("statInsert_"+str(ll)+"_"+str(rr), insert) 
-    
+    #write_MutationOrDelete("statMutation_"+str(ll)+"_"+str(rr),mutationPos) 
+    #write_MutationOrDelete("statDelete_"+str(ll)+"_"+str(rr),DeletePos) 
+    insert = filter_Insert(insert, coverage)
     stableRange = pos_2_Range(stablePos, insert)
-
-    mutationPos = sorted(mutationOrDeletePos)
-    mutationRange = pos_2_Range(mutationPos ,insert)
-
+    #write_Insert("statInsert_"+str(ll)+"_"+str(rr), insert) 
 
     print ("stableRange:", stableRange) 
     print ("len(stableRange):", len(stableRange))
     fout2 = open("stableRange_"+str(ll)+"_"+str(rr), "w")
     for (l,r) in stableRange:
         fout2.write("%s %s\n" % (l,r))
-    fout2.close() 
-
-    print ("MutationRange:", mutationRange) 
-    print ("len(MutationRange):", len(mutationRange))
-
-    #ObM = get_Ob_MutationRange(mutationRange, stableRange, insert)
-    ObSNP = get_Ob_SNP(mutationPos, stableRange, insert)
-    ################
-    #showObM(ObM,pileupcolumns)  
-    #showObM(ObM, mutationOrDeletePos)  
-    readsFlag = show_ObSNP(ObSNP, mutationOrDeletePos) 
-    phasing_Reads(readsFlag, ObSNP)
-    return stableRange, mutationOrDeletePos
+    fout2.close()  
+    return stableRange, mutationPos, deletePos, insert, coverage
 
 #stableRange is sorted
 def is_SubRange(i, j, stableRange):
@@ -263,21 +432,23 @@ def is_SubRange(i, j, stableRange):
             return False
     return False
 
-def get_Ob_SNP(mutationPos, stableRange, insert):
-    ObSNP = [] 
+def get_SNP(mutationPos, stableRange, insert, obLen):
+    # unfinish 
+    snp = [] 
     for a in mutationPos:
-        if (a-1 not in insert) and (a+1 not in insert):
-            if is_SubRange(a-5, a-1,stableRange) and is_SubRange(a+1,a+5, stableRange):
-                ObSNP.append(a)
+        if a not in insert:
+            if is_SubRange(a-obLen, a-1,stableRange) and is_SubRange(a+1,a+obLen, stableRange):
+                snp.append(a)
 
-    print ("ObSNP:", ObSNP) 
-    print ("len(ObSNP):", len(ObSNP))
+    
+    '''
     fout = open("SNPdiff","w")
     for i in range(len(ObSNP)-1):
         fout.write("%s\n" % (ObSNP[i+1]-ObSNP[i]))
 
     fout.close()
-    return ObSNP
+    '''
+    return snp
 
 
 def get_Ob_Mutation(mutationRange, stableRange, insert):
@@ -353,8 +524,8 @@ def get_Cov(pos, pileupcolumns):
 
 
 
-def is_Mutation(oneColumn, nucleotide, mutationOrDeletePos, fout):
-
+def is_Mutation(oneColumn, nucleotide, mutationPos, deletePos, fout):
+    #time1 = time.clock() 
     pp = oneColumn.pos
     cov = oneColumn.n
     nuc = {}
@@ -383,16 +554,21 @@ def is_Mutation(oneColumn, nucleotide, mutationOrDeletePos, fout):
             else:
                 nuc[cc.upper()] += 1  
             supportReadName[cc.upper()].append(pread.alignment.query_name)  
-    fout.write(("reference position: %d coverage: %s\n") % (pp,cov))
+    fout.write(("reference position: %d coverage: %s reference base: %s\n") % (pp,cov, nucleotide))
     write_Map(fout, nuc)
     sortedNuc = sorted_Map_Value(nuc)
     #res.append( (sortedNuc[0][0], supportReadName[sortedNuc[0][0]]) )
 
+    #time2 = time.clock()
+    #print ("one mutation running time %s Seconds" % (time2-time1))
     if (sortedNuc[0][0] == nucleotide and sortedNuc[0][1] >= cov*0.7):
         return False  
         
-    if (sortedNuc[0][1] < cov*0.7 and sortedNuc[1][1] >= cov*0.3): 
-        mutationOrDeletePos[pp] = (nuc, supportReadName)
+    if (sortedNuc[0][1] < cov*0.7 and sortedNuc[1][1] >= cov*0.3):
+        if sortedNuc[0][0] == '*' or sortedNuc[1][0] == '*':
+            deletePos[pp] =  (nuc, supportReadName)
+        else:     
+            mutationPos[pp] = (nuc, supportReadName)
         #print ("SNP mutation")
         #res.append((sortedNuc[1][0], supportReadName[sortedNuc[1][0]]))
         return True
@@ -455,6 +631,7 @@ def check_Mutation(pos, pileupcolumns):
         print ("stable")
     return res
 '''
+#in tools
 def sorted_Map_Value(m, R=True):
     sortedM = []
     for k, v in [(k, m[k]) for k in sorted(m, key=m.get, reverse=R)]:
@@ -633,13 +810,27 @@ def get_Not_Insert_Read_Support(insert, pileupcolumns):
 if __name__ == "__main__":
 
     # sorted bam
+    time1 = time.clock() 
     samfile = pysam.AlignmentFile(sys.argv[1], "rb")
    
     # contig
     contigs = contig.read_Contig(sys.argv[2])
     insert = get_Insert(samfile)
+    time2 = time.clock()
+
+    print ("Get insert running time %s Seconds" % (time2 - time1))
+
     #insert = {} 
-    stableRange, mutationOrDeletePos = get_StableRange(samfile,contigs,insert,20000, 80000)
+    #stableRange, mutationPos, deletePos, insert, coverage = get_StableRange(samfile,contigs,insert, 0, len(contigs[0].Seq))
+   
+    stableRange, mutationPos, deletePos, insert, coverage = get_StableRange(samfile,contigs,insert, 20000, 80000)
+
+    time3 = time.clock()
+    print ("Get stable running time %s Seconds" % (time3 - time2))
+    get_SNP_MDI(stableRange, mutationPos, deletePos, insert, coverage)
+    
+    time4 = time.clock()
+    print ("Phasing running time %s Seconds" % (time4 - time3))
     '''
     print ("check: ",pileupcolumns[0][0].pos) 
     print ("check: ",pileupcolumns[0][0].n)
