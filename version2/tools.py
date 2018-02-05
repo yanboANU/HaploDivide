@@ -49,3 +49,30 @@ def hamming_Distance(s1, s2):
         if s1[i] != s2[i]:
             count +=1
     return count
+
+# about range
+def pos_2_Range(pos):
+
+    stableRange = []
+    
+    i = 0
+    while i < len(stablePos)-1:
+        s = stablePos[i]
+        e = stablePos[i]
+        while (stablePos[i]+1 == stablePos[i+1]):
+            i = i+1
+            e = stablePos[i]
+            if (i >= len(stablePos)-1):
+                break 
+        i = i+1
+        stableRange.append((s,e)) 
+    return pos_2_Range 
+
+
+def is_SubRange(i, j, stableRange):
+    for (a,b) in stableRange:
+        if i >= a and j <= b:
+            return True
+        if a >= j:
+            return False
+    return False

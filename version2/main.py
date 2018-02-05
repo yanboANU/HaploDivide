@@ -21,7 +21,22 @@ if __name__ == '__main__':
     time2 = time.clock()
     print ( "init columns running %s Seconds" % (time2 - time1) )
 
-    for c in columns:
-        c._is_MDS()
+    mutation = []
+    insert = []
+    delete = []
+    stable = []  
+    for (refPos, c) in columns.items():
+        c._set_Lable()
         #sys.exit()
+        if c._is_insert == 1:
+            insert.append(refPos)
+        
+        if c._is_mutation == 1:
+            mutation.append(refPos)
+        
+        if c._is_delete == 1:
+            delete.append(refPos)
+        
+        if c._is_stable == 1:
+            stable.append(refPos)
 
