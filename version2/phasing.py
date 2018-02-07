@@ -184,6 +184,19 @@ class Phasing:
         #     print (ele)
         return readsLabel       
 
+   
+    def _update(self, label0, label1, phase0, phase1, readsLabel, position):
+
+        if len(position) > 0:
+            unphased = phase0.intersection(phase1)
+            if len( unphased ) > 0:
+                self._re_phasing(unphased, label0, label1, phase0, phase1, readsLabel, position)
+            self._label0s.append(label0)
+            self._label1s.append(label1)
+            self._phase0s.append(phase0)
+            self._phase1s.append(phase1)
+            self._positions.append(position) 
+
     def _phasing(self, window=3):
             
         label0 = ""
@@ -235,20 +248,21 @@ class Phasing:
                     position.extend(self._snp[i+2:i+3])
                 #sys.exit()
             else:
-
-                
-                unphased = phase0.intersection(phase1)     
-                #print ("intersection:", unphased)
-                if len( unphased ) > 0:
-                    self._re_phasing(unphased, label0, label1, phase0, phase1, readsLabel, position)
-                
+ 
+                self._update(label0, label1, phase0, phase1, readsLabel, position)                
+                '''
                 if len(position) > 0:
+
+                    unphased = phase0.intersection(phase1)     
+                    #print ("intersection:", unphased)
+                    if len( unphased ) > 0:
+                        self._re_phasing(unphased, label0, label1, phase0, phase1, readsLabel, position)
                     self._label0s.append(label0)
                     self._label1s.append(label1)
                     self._phase0s.append(phase0) 
                     self._phase1s.append(phase1)
                     self._positions.append(position) 
-                
+                '''
                 #unphased = phase0.intersection(phase1)     
                 #print ("after re_phasing intersection:", unphased)
                 
@@ -265,7 +279,20 @@ class Phasing:
                 #fout.write("\n")
                 #sys.exit()
 
+        self._update(label0, label1, phase0, phase1, readsLabel, position)                
+        '''
+        if len(position) > 0:
 
+            unphased = phase0.intersection(phase1)     
+                #print ("intersection:", unphased)
+            if len( unphased ) > 0:
+                self._re_phasing(unphased, label0, label1, phase0, phase1, readsLabel, position)
+            self._label0s.append(label0)
+            self._label1s.append(label1)
+            self._phase0s.append(phase0) 
+            self._phase1s.append(phase1)
+            self._positions.append(position) 
+        '''
     def _re_phasing(self, unphased, label0, label1, phase0, phase1, readLabel, position):
         (s,e) = tools.get_Range_From_List(position, self._snp)
         for read in unphased:
