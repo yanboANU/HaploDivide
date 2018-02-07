@@ -11,7 +11,7 @@ class Contig:
         print (self._name, self._len)
 
 def read_Contig(filename):
-    contigs = []
+    contigs = {}
     f = open(filename, "r")
     
     seq = ""
@@ -20,7 +20,7 @@ def read_Contig(filename):
             if len(seq) > 0:
                 contig = Contig(name,seq)  
                 contig.print()
-                contigs.append(contig)
+                contigs[name] = contig
             name = line.split()[0][1:]
             seq = "" 
         else:
@@ -29,6 +29,6 @@ def read_Contig(filename):
     if len(seq) > 0:
         contig = Contig(name,seq)  
         contig.print()
-        contigs.append(contig)
+        contigs[name] = contig
     f.close()        
     return contigs

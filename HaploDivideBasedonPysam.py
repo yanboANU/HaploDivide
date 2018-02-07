@@ -5,7 +5,7 @@ import os
 import pysam
 import string
 import copy
-import time
+import time, threading
 import contig
 import tools
 
@@ -341,7 +341,7 @@ def get_Insert_Content(snpI, insert, coverage):
 
 
 
-def get_SNP_MDI(stableRange, mutationPos, deletePos, insert, coverage):
+def get_SNP_MDI(stableRange, mutationPos, deletePos, insert, coverage, contig):
 
 
     snpM = get_SNP(mutationPos, stableRange, insert, 3)
@@ -352,7 +352,7 @@ def get_SNP_MDI(stableRange, mutationPos, deletePos, insert, coverage):
     print ("snpD:", snpD) 
     print ("len(snpD):", len(snpD))
 
-    newD = filter_Homopolyer(snpD, deletePos, contigs[0].Seq)
+    newD = filter_Homopolyer(snpD, deletePos, contig.Seq)
     print ("newD:", newD) 
     print ("len(newD):", len(newD))
 
@@ -361,7 +361,7 @@ def get_SNP_MDI(stableRange, mutationPos, deletePos, insert, coverage):
     print ("snpI:", snpI) 
     print ("len(snpI):", len(snpI))
     insertC, highI = get_Insert_Content(snpI, insert, coverage)
-    newI = filter_Homopolyer(highI, insertC, contigs[0].Seq)
+    newI = filter_Homopolyer(highI, insertC, contig.Seq)
 
     print ("newI:", newI) 
     print ("len(newI):", len(newI))
@@ -374,15 +374,15 @@ def get_SNP_MDI(stableRange, mutationPos, deletePos, insert, coverage):
     fout.close()
     
 
-def get_StableRange(samfile, contigs, insert, ll, rr):
+def get_StableRange(samfile, contig, insert):
     mutationPos = {}
     deletePos = {}
     stablePos = []  # ref same with all reads position
     pileupcolumns = []
     coverage = {}
-    fout = open("statColumns_"+str(ll)+"_"+str(rr),"w") 
+    fout = open(contig.Name +"_statColumns","w") 
     time1 = time.clock()
-    for pileupcolumn in samfile.pileup(): 
+    for pileupcolumn in samfile.pileup(contig.Name): 
         pileupcolumns.append(pileupcolumn)
     
     #time2 = time.clock()
@@ -394,19 +394,20 @@ def get_StableRange(samfile, contigs, insert, ll, rr):
         coverage[pp] = cov
         #print (pp)
         #print (len(contigs[0].Seq))
-        if pp > len(contigs[0].Seq):
+        if pp > len(contig.Seq):
             sys.exit("error")
-        nucleotide = contigs[0].Seq[pp]
-         
+        nucleotide = contig.Seq[pp]
+        ''' 
         if (pileupcolumn.pos < ll):# and pileupcolumn.pos <2050):
             continue
         if (pileupcolumn.pos > rr):
             break
+        '''    
         if not is_Mutation(pileupcolumn, nucleotide, mutationPos, deletePos, fout):
             stablePos.append(pp)
 
     time3 = time.clock()
-    print ("deal column by column running time %s Second" % (time3-time2) )
+    print ("deal column by column running time %s Second" % (time3-time1) )
     fout.close()
 
     #write_MutationOrDelete("statMutation_"+str(ll)+"_"+str(rr),mutationPos) 
@@ -417,7 +418,7 @@ def get_StableRange(samfile, contigs, insert, ll, rr):
 
     print ("stableRange:", stableRange) 
     print ("len(stableRange):", len(stableRange))
-    fout2 = open("stableRange_"+str(ll)+"_"+str(rr), "w")
+    fout2 = open(contig.Name + "_stableRange", "w")
     for (l,r) in stableRange:
         fout2.write("%s %s\n" % (l,r))
     fout2.close()  
@@ -466,11 +467,11 @@ def get_Ob_Mutation(mutationRange, stableRange, insert):
 
 
 
-def get_Insert(samfile):
+def get_Insert(samfile, contigName):
    
     Insert = {} # id: reference pos key: insert content between pos, pos+1
      
-    for read in samfile.fetch():
+    for read in samfile.fetch(contigName):
         #print (read.reference_end)
         #print (read.query_alignment_end)
         alignedPairs = read.get_aligned_pairs()
@@ -502,7 +503,7 @@ def get_Insert(samfile):
             i = i+1
         #break  
     #print (Insert)
-    #print (sorted(Insert.items())) # diff in python2 and python3
+    print (sorted(Insert.items())) # diff in python2 and python3
     #print (Insert)
     return Insert   
         #for key, value in sorted
@@ -555,7 +556,7 @@ def is_Mutation(oneColumn, nucleotide, mutationPos, deletePos, fout):
                 nuc[cc.upper()] += 1  
             supportReadName[cc.upper()].append(pread.alignment.query_name)  
     fout.write(("reference position: %d coverage: %s reference base: %s\n") % (pp,cov, nucleotide))
-    write_Map(fout, nuc)
+    write_Map(fout, supportReadName)
     sortedNuc = sorted_Map_Value(nuc)
     #res.append( (sortedNuc[0][0], supportReadName[sortedNuc[0][0]]) )
 
@@ -806,7 +807,19 @@ def get_Not_Insert_Read_Support(insert, pileupcolumns):
                 if read.alignment.query_name not in rr:
                     notInsert[p.pos].append(read.alignment.query_name)
     return notInsert
- 
+
+
+
+def loop(samfile, contigs):
+
+    for (contigName, contig) in contigs.items():
+        insert  = get_Insert(samfile, contigName) 
+        write_Insert(contigName+"_Insert", insert)
+
+        stableRange, mutationPos, deletePos, insert, coverage = get_StableRange(samfile,contig,insert)
+
+        get_SNP_MDI(stableRange, mutationPos, deletePos, insert, coverage, contig)
+
 if __name__ == "__main__":
 
     # sorted bam
@@ -815,6 +828,12 @@ if __name__ == "__main__":
    
     # contig
     contigs = contig.read_Contig(sys.argv[2])
+    
+    t = threading.Thread(target=loop, name='LoopTHread', args=(samfile,contigs,))
+    t.start()
+    t.join()
+
+    '''    
     insert = get_Insert(samfile)
     time2 = time.clock()
 
@@ -831,14 +850,8 @@ if __name__ == "__main__":
     
     time4 = time.clock()
     print ("Phasing running time %s Seconds" % (time4 - time3))
-    '''
-    print ("check: ",pileupcolumns[0][0].pos) 
-    print ("check: ",pileupcolumns[0][0].n)
-    print ("check: ",pileupcolumns[0][0].reference_name)
-    print ("check: ",pileupcolumns[0][0].reference_id)
-    '''
     #notInsert = get_Not_Insert_Read_Support(insert, pileupcolumns)
     #print ("check: ",pileupcolumns[0].pileups) pileups is iterator  
     #print (sorted(insert.items())) # during get_StableRange, insert change and these change keep 
     #haplo_Divide(stableRange, insert, contigs, pileupcolumns, notInsert)
-
+    '''

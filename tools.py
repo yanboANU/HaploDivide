@@ -26,6 +26,8 @@ def sorted_Map_Value(m, R=True):
 def is_Bool_Reverse(s1, s2):
     assert len(s1) == len(s2)
     for i in range(len(s1)):
+        assert s1[i] == 0 or s1[i] == 1
+        assert s2[i] == 0 or s2[i] == 1
         if s1[i] == s2[i]:
             return False
     return True    

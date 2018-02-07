@@ -1,0 +1,32 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+check_Insert	HaploDivideBasedonPysam.py	/^def check_Insert(insertList):$/;"	f
+contigs	HaploDivideBasedonPysam.py	/^    contigs = contig.read_Contig(sys.argv[2])$/;"	v
+filter_Homopolyer	HaploDivideBasedonPysam.py	/^def filter_Homopolyer(snpD, deletePos, sequence):$/;"	f
+filter_Insert	HaploDivideBasedonPysam.py	/^def filter_Insert(insert, pileupcolumns):$/;"	f
+get_Cov	HaploDivideBasedonPysam.py	/^def get_Cov(pos, pileupcolumns):$/;"	f
+get_Insert	HaploDivideBasedonPysam.py	/^def get_Insert(samfile):$/;"	f
+get_Insert_Content	HaploDivideBasedonPysam.py	/^def get_Insert_Content(snpI, insert):$/;"	f
+get_Not_Insert_Read_Support	HaploDivideBasedonPysam.py	/^def get_Not_Insert_Read_Support(insert, pileupcolumns):$/;"	f
+get_Ob_Mutation	HaploDivideBasedonPysam.py	/^def get_Ob_Mutation(mutationRange, stableRange, insert):$/;"	f
+get_SNP	HaploDivideBasedonPysam.py	/^def get_SNP(mutationPos, stableRange, insert, obLen):$/;"	f
+get_SNP_MDI	HaploDivideBasedonPysam.py	/^def get_SNP_MDI(stableRange, mutationPos, deletePos, insert):$/;"	f
+get_StableRange	HaploDivideBasedonPysam.py	/^def get_StableRange(samfile, contigs, insert, ll, rr):$/;"	f
+get_unStableRange	HaploDivideBasedonPysam.py	/^def get_unStableRange(insert, mutationOrDeletePos, mergeLen, ll, rr):$/;"	f
+haplo_Divide	HaploDivideBasedonPysam.py	/^def haplo_Divide(stableRange, insert, contigs, pileupcolumns, notInsert):$/;"	f
+insert	HaploDivideBasedonPysam.py	/^    insert = get_Insert(samfile)$/;"	v
+is_Mutation	HaploDivideBasedonPysam.py	/^def is_Mutation(oneColumn, nucleotide, mutationPos, deletePos, fout):$/;"	f
+is_SubRange	HaploDivideBasedonPysam.py	/^def is_SubRange(i, j, stableRange):$/;"	f
+phasing_Reads	HaploDivideBasedonPysam.py	/^def phasing_Reads(readsFlag, ObSNP):$/;"	f
+pos_2_Range	HaploDivideBasedonPysam.py	/^def pos_2_Range(stablePos, insert):$/;"	f
+samfile	HaploDivideBasedonPysam.py	/^    samfile = pysam.AlignmentFile(sys.argv[1], "rb")$/;"	v
+show_ObSNP	HaploDivideBasedonPysam.py	/^def show_ObSNP(ObSNP, mPos):$/;"	f
+sorted_Map_Value	HaploDivideBasedonPysam.py	/^def sorted_Map_Value(m, R=True):$/;"	f
+update_SupportRead	HaploDivideBasedonPysam.py	/^def update_SupportRead(supportSeq1, supportSeq2, curAB, seq1, seq2):$/;"	f
+write_Insert	HaploDivideBasedonPysam.py	/^def write_Insert(fileName, insert):$/;"	f
+write_Map	HaploDivideBasedonPysam.py	/^def write_Map(fout, nuc):$/;"	f
+write_MutationOrDelete	HaploDivideBasedonPysam.py	/^def write_MutationOrDelete(fileName, m):$/;"	f

@@ -1,3 +1,5 @@
 (1) BAM
-(2) sort BAM
-(3) PreProcess: remove some alignment, move gap to right 
+(2) PreProcess: remove some alignment, move gap to right
+nohup python3 /home/yulin/liyanbo/script/HaploDivide/PreProcessSortedBam.py aten.sorted.bam one_contig.fasta >pre.log &
+ 
+(3) sort BAM

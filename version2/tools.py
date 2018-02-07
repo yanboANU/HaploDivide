@@ -11,7 +11,7 @@ import contig
 # map module
 ###################
 def write_Map(fout, nuc):
-    for (key,v) in sorted(nuc.items()):
+    for (key,v) in nuc.items():
         fout.write("%s %s\n"%(key, v)) 
     fout.write("\n")  
 
@@ -36,6 +36,8 @@ def sorted_Map_Value_Len(m, R=True):
 # s1 and s2 both string, only include '0'/'1' 
 def is_Bool_Reverse(s1, s2):
     assert len(s1) == len(s2)
+    if s1.find('2') != -1 or s2.find('2') != -1:
+        return False
     for i in range(len(s1)):
         if s1[i] == s2[i]:
             return False
@@ -50,8 +52,15 @@ def hamming_Distance(s1, s2):
             count +=1
     return count
 
+def same_Character(s):
+    first = s[0]
+    for c in s:
+        if c != first:
+            return False
+    return True    
+
 # about range
-def pos_2_Range(pos):
+def pos_2_Range(stablePos):
 
     stableRange = []
     
@@ -66,8 +75,20 @@ def pos_2_Range(pos):
                 break 
         i = i+1
         stableRange.append((s,e)) 
-    return pos_2_Range 
+    return stableRange
 
+def get_Range_From_List(small, large):
+    
+
+    print ("small:", small)
+    print ("large:", large)
+    assert set(small).intersection(large) == set(small)
+    
+    #for ele in large:
+    s = large.index(small[0])
+    e = large.index(small[-1])
+    assert large[s:e+1] == small
+    return (s,e+1)
 
 def is_SubRange(i, j, stableRange):
     for (a,b) in stableRange:

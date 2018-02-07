@@ -1,0 +1,36 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+Column	column.py	/^class Column:$/;"	c
+Contig	contig.py	/^class Contig:$/;"	c
+Phasing	phasing.py	/^class Phasing:$/;"	c
+__init__	column.py	/^    def __init__(self, refPos):$/;"	m	class:Column
+__init__	contig.py	/^    def __init__(self, name, seq):$/;"	m	class:Contig
+__init__	phasing.py	/^    def __init__(self, columns, obLen = 3):$/;"	m	class:Phasing
+_get_SNP	phasing.py	/^    def _get_SNP(self, pos, obLen):$/;"	m	class:Phasing
+_is_Insert	column.py	/^    def _is_Insert(self):$/;"	m	class:Column
+_label_reads	phasing.py	/^    def _label_reads(self):$/;"	m	class:Phasing
+_phasing	phasing.py	/^    def _phasing(window=3):$/;"	m	class:Phasing
+_phasing_one_window	phasing.py	/^    def _phasing_one_window(allCoverPhases, labelReads):$/;"	m	class:Phasing
+_pre_Process	phasing.py	/^    def _pre_Process(self):$/;"	m	class:Phasing
+_pre_init	phasing.py	/^    def _pre_init(self):$/;"	m	class:Phasing
+_set_Lable	column.py	/^    def _set_Lable(self):$/;"	m	class:Column
+_set_Mutation_or_Delete	column.py	/^    def _set_Mutation_or_Delete(self):$/;"	m	class:Column
+bamfile	main.py	/^    bamfile = pysam.AlignmentFile(sys.argv[1], "rb")$/;"	v
+contigs	main.py	/^    contigs = contig.read_Contig(sys.argv[2])$/;"	v
+hamming_Distance	tools.py	/^def hamming_Distance(s1, s2):$/;"	f
+init_Columns	column.py	/^def init_Columns(bamfile, contig):$/;"	f
+is_Bool_Reverse	tools.py	/^def is_Bool_Reverse(s1, s2):$/;"	f
+is_SubRange	tools.py	/^def is_SubRange(i, j, stableRange):$/;"	f
+loop	main.py	/^def loop(bamfile, contigs):$/;"	f
+pos_2_Range	tools.py	/^def pos_2_Range(pos):$/;"	f
+print	contig.py	/^    def print(self):$/;"	m	class:Contig
+read_Contig	contig.py	/^def read_Contig(filename):$/;"	f
+sorted_Map_Value	tools.py	/^def sorted_Map_Value(m, R=True):$/;"	f
+sorted_Map_Value_Len	tools.py	/^def sorted_Map_Value_Len(m, R=True):$/;"	f
+t	main.py	/^    t = threading.Thread(target=loop, name='LoopTHread', args=(bamfile,contigs,))$/;"	v
+write_Columns	column.py	/^def write_Columns(filename, columns):$/;"	f
+write_Map	tools.py	/^def write_Map(fout, nuc):$/;"	f

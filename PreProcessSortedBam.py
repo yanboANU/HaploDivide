@@ -122,6 +122,33 @@ def print_Alignment(readAlignPos,referAlignPos,readSeq,contigSeq):
     print (alignPos_2_Sequence(referAlignPos, contigSeq))
     #print (referAlignPos)
 
+def write_No_Repeat(reads, samfile):
+
+    newBam = pysam.AlignmentFile("no_repeat_reads.bam", "wb", template=samfile) 
+    for (name, read) in reads.items():
+        print ("read len:", read.qlen) # not read length
+        print ("read len:", len(read.query_sequence))   
+        print ("align len:", len(read.get_aligned_pairs(True,False)))
+        print ("mapping quality", read.mapping_quality)
+        '''
+        newRead = pysam.AlignedSegment()
+        newRead.query_name = read.query_name
+        newRead.query_sequence=read.query_sequence
+        newRead.flag = read.flag
+        newRead.reference_id = read.reference_id
+        newRead.reference_start = read.reference_start
+        newRead.mapping_quality = read.mapping_quality
+        newRead.cigar = read.cigar
+        newRead.next_reference_id = read.next_reference_id
+        newRead.next_reference_start = read.next_reference_start
+        newRead.template_length= read.template_length
+        newRead.query_qualities = read.query_qualities
+        newRead.tags = read.tags
+        '''
+        newBam.write(read)
+        #break  
+    newBam.close()
+
 def write_New_Bam(readAndNewAlign, samfile):
 
     newBam = pysam.AlignmentFile("new.bam", "wb", template=samfile) 
@@ -239,7 +266,7 @@ def realignment(reads, contigs):
         referAlignSeq = alignPos_2_Sequence(referAlignPos, contigSeq)   
         newCigar = align2Cigar(readAlignSeq, referAlignSeq, read.cigar)
         readAndNewAlign.append((read, newCigar))
-        print (newCigar)
+        print ("new cigar", newCigar)
         lenByNewCigar =  calc_Query_Length(newCigar) 
         print ("new cigar, query length:",calc_Query_Length(newCigar))
         assert lenByNewCigar == readSeqLen 
@@ -250,14 +277,14 @@ if __name__ == "__main__":
     # sorted bam
     samfile = pysam.AlignmentFile(sys.argv[1], "rb") 
     # contig
-    contigs = contig.read_Contig(sys.argv[2])     
+    #contigs = contig.read_Contig(sys.argv[2])     
 
     # step one
     reads = remove_Duplicate(samfile)
-    
+    write_No_Repeat(reads,samfile) 
     # step two: realignment, merge gap togther
-    readAndNewAlign = realignment(reads, contigs)
-    write_New_Bam(readAndNewAlign, samfile)
+    #readAndNewAlign = realignment(reads, contigs)
+    #write_New_Bam(readAndNewAlign, samfile)
    
     samfile.close() 
 
