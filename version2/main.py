@@ -41,10 +41,10 @@ if __name__ == '__main__':
     print ( "finish reading contigs" )
 
      
-    #loop(bamfile, contigs)
-        
+    loop(bamfile, contigs)
+    '''        
     t = threading.Thread(target=loop, name='LoopTHread', args=(bamfile,contigs,))
     t.start()
     t.join()
-     
+    ''' 
 

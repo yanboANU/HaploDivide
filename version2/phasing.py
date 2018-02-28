@@ -209,8 +209,28 @@ class Phasing:
         else:
             print ("canot link")
             return False
+
+    def _update_labels(self,labelx, labely, s, phasex, phasey, readsLabel):
+ 
+        self._label0s[-1] += labelx[s:]
+        self._label1s[-1] += labely[s:]
+        phasex.update(self._phase0s[-1].union(phasex))   
+        #self._phase0s[-1].update(self._phase0s[-1].union(phase0))
+        phasey.update(self._phase1s[-1].union(phasey))
+
+        unphased = phasex.intersection(phasey)
+        if len( unphased ) > 0:
+            print ("after link have intersection") 
+            print (unphased) 
+            print (len(self._label0s[-1]) , self._label0s[-1])
+            print (len(self._label1s[-1]) , self._label1s[-1])
+            print (len(self._positions[-1]) , self._positions[-1])
+            self._re_phasing(unphased, self._label0s[-1], self._label1s[-1] , phasex, phasey, readsLabel, self._positions[-1])
+           
+        self._phase0s[-1].update(phasex)
+        self._phase1s[-1].update(phasey)
       
-    def _update_in_link_way(self,label0, label1, phase0, phase1, position):
+    def _update_in_link_way(self,label0, label1, phase0, phase1, position, readsLabel):
 
         print ("update in link way ")  
         pre_position = self._positions[-1]
@@ -221,23 +241,23 @@ class Phasing:
                     print ("link type 1:",i, label0[:i+1], label1[:i+1], self._label0s[-1][-(i+1):],self._label1s[-1][-(i+1):])
                     if ( label0[:i+1] == self._label0s[-1][-(i+1):] and
                          label1[:i+1] == self._label1s[-1][-(i+1):] ):
+                        self._update_labels(label0, label1, i+1, phase0, phase1, readsLabel)
+                        ''' 
                         self._label0s[-1] += label0[i+1:] 
                         self._label1s[-1] += label1[i+1:]
-
-                        #phase0.update(phase0.union(set(labelReads[v[0]])))
                         self._phase0s[-1].update(self._phase0s[-1].union(phase0))
                         self._phase1s[-1].update(self._phase1s[-1].union(phase1))
-                        #self._phase1s[-1].extend(phase1)
-
+                        '''
                     elif ( label0[:i+1] == self._label1s[-1][-(i+1):] and
                            label1[:i+1] == self._label0s[-1][-(i+1):] ):
 
+                        self._update_labels(label1, label0, i+1, phase1, phase0, readsLabel)
+                        '''
                         self._label0s[-1] += label1[i+1:] 
                         self._label1s[-1] += label0[i+1:]
-                        #self._phase0s[-1].extend(phase1)
-                        #self._phase1s[-1].extend(phase0)
                         self._phase0s[-1].update(self._phase0s[-1].union(phase1))
                         self._phase1s[-1].update(self._phase1s[-1].union(phase0))
+                        '''
                     else:
                         print ("link error 1")   
                     return  
@@ -247,16 +267,21 @@ class Phasing:
          
         s = self._snp.index(pre_position[-1]) + 1
         e = self._snp.index(position[0])
+        assert (e>=s)
         self._positions[-1].extend(self._snp[s:e])
         self._positions[-1].extend(position)
 
-        self._label0s[-1] +=  (s-e)*'*'
-        self._label1s[-1] +=  (s-e)*'*'
+       
+        self._label0s[-1] +=  (e-s)*'*'
+        self._label1s[-1] +=  (e-s)*'*'
 
         print ("link type 2:")
+        print (s, e)
         if ( len(phase0.intersection(self._phase0s[-1])) > len(phase0.intersection(self._phase1s[-1])) and	
              len(phase1.intersection(self._phase1s[-1])) > len(phase1.intersection(self._phase0s[-1])) ):
  
+            self._update_labels(label0, label1, 0, phase0, phase1, readsLabel)
+            '''
             self._label0s[-1] += label0
             self._label1s[-1] += label1
             #self._phase0s[-1].extend(phase0)
@@ -264,8 +289,12 @@ class Phasing:
 
             self._phase0s[-1].update(self._phase0s[-1].union(phase0))
             self._phase1s[-1].update(self._phase1s[-1].union(phase1))
+            '''
         elif ( len(phase0.intersection(self._phase0s[-1])) < len(phase0.intersection(self._phase1s[-1])) and	
              len(phase1.intersection(self._phase1s[-1])) < len(phase1.intersection(self._phase0s[-1])) ): 
+            
+            self._update_labels(label1, label0, 0, phase1, phase0, readsLabel)
+            '''
             self._label0s[-1] += label1
             self._label1s[-1] += label0
             #self._phase0s[-1].extend(phase1)
@@ -273,6 +302,7 @@ class Phasing:
 
             self._phase0s[-1].update(self._phase0s[-1].union(phase1))
             self._phase1s[-1].update(self._phase1s[-1].union(phase0))
+            '''  
         else: 
             print ("link error 2")
 
@@ -293,7 +323,7 @@ class Phasing:
                 print (self._phase0s[-1])
                 print (self._phase1s[-1])
                 if self._can_link_phases(label0, label1, phase0, phase1, position):
-                    self._update_in_link_way(label0, label1, phase0, phase1, position) 
+                    self._update_in_link_way(label0, label1, phase0, phase1, position, readsLabel) 
                     return  
             self._label0s.append(label0)
             self._label1s.append(label1)
