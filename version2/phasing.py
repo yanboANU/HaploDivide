@@ -145,6 +145,14 @@ class Phasing:
         print ( "snp delete lens:", len(self._snp_delete) )
         #sys.exit()
 
+        fout = open(self._contig._name+"_snp_mutation","w")
+        fout.write("name: %s len: %s\n" % (self._contig._name, self._contig._len))
+        fout.write("snp mutation number: %s\n" % (len(self._snp_mutation)))
+        for sm in self._snp_mutation:
+            fout.write("%s " % sm)
+            fout.write("\n")
+        fout.close()
+
     def _get_SNP(self, pos):
         # unfinish 
         snp = [] 
