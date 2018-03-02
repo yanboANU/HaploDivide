@@ -235,6 +235,7 @@ class Phasing:
             print (len(self._positions[-1]) , self._positions[-1])
             self._re_phasing(unphased, self._label0s[-1], self._label1s[-1] , phasex, phasey, readsLabel, self._positions[-1])
            
+        assert len(phasex.intersection(phasey)) == 0
         self._phase0s[-1].update(phasex)
         self._phase1s[-1].update(phasey)
       
@@ -335,6 +336,7 @@ class Phasing:
                     return  
             self._label0s.append(label0)
             self._label1s.append(label1)
+            assert len(phase0.intersection(phase1)) == 0
             self._phase0s.append(phase0)
             self._phase1s.append(phase1)
             self._positions.append(position) 
@@ -357,7 +359,7 @@ class Phasing:
                 phases[f].append(read)
             #print (phases)   
         
-            print (self._snp[i:i+3])
+            #print (self._snp[i:i+3])
             sortedPhases = tools.sorted_Map_Value_Len(phases)
             cov = 0
             allCoverPhases = []
@@ -408,7 +410,7 @@ class Phasing:
                 #unphased = phase0.intersection(phase1)     
                 #print ("after re_phasing intersection:", unphased)
                 
-                print ("not statified")
+                #print ("not statified")
                 label0 = ""
                 label1 = ""
                 phase0 = set()
@@ -452,8 +454,8 @@ class Phasing:
     def _phasing_one_window(self, allCoverPhases, labelReads, label0, label1, phase0, phase1):
      
         #print ("in phasing")
-        print (label0 , label1)
-        print (allCoverPhases[0][0], allCoverPhases[1][0])
+        #print (label0 , label1)
+        #print (allCoverPhases[0][0], allCoverPhases[1][0])
         if len(label0) == 0: 
             label0 = allCoverPhases[0][0]
             label1 = allCoverPhases[1][0] 
@@ -479,9 +481,9 @@ class Phasing:
                 print ("same distance", v)
             
 
-        print (label0, len(phase0), phase0)      
-        print (label1, len(phase1), phase1)      
+        #print (label0, len(phase0), phase0)      
+        #print (label1, len(phase1), phase1)      
         
    
-        print ("intersection:", phase0.intersection(phase1) )
+        #print ("intersection:", phase0.intersection(phase1) )
         return label0, label1
