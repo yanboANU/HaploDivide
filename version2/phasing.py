@@ -388,7 +388,8 @@ class Phasing:
                 position = []
             '''
             if ( len(allCoverPhases)>=2 and allCoverPhases[0][1] > cov * 0.2 and allCoverPhases[1][1] > cov * 0.2
-               and tools.is_Bool_Reverse(allCoverPhases[0][0], allCoverPhases[1][0]) ):
+               and tools.is_Bool_Reverse(allCoverPhases[0][0], allCoverPhases[1][0]) and 
+                 (label0[-2:] == allCoverPhases[0][0][:2] or label0[-2:] == allCoverPhases[1][0][:2] ) ):
                 label0, label1 = self._phasing_one_window(allCoverPhases, phases, label0, label1, phase0, phase1)
                 if len(position) == 0:
                     position.extend(self._snp[i:i+3])
@@ -497,8 +498,10 @@ class Phasing:
             label0 = allCoverPhases[0][0]
             label1 = allCoverPhases[1][0] 
         else:
+            
             assert ( label0[-2:] == allCoverPhases[0][0][:2] or  
                    label0[-2:] == allCoverPhases[1][0][:2] )
+              
             if label0[-2:] == allCoverPhases[0][0][:2]: 
                 label0 = label0 + allCoverPhases[0][0][-1] 
                 label1 = label1 + allCoverPhases[1][0][-1] 
