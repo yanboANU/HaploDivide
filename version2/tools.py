@@ -12,7 +12,7 @@ import contig
 ###################
 def write_Map(fout, nuc):
     for (key,v) in nuc.items():
-        fout.write("%s %s\n"%(key, v)) 
+        fout.write("%s %s %s\n"%(key, len(v), v)) 
     fout.write("\n")  
 
 # sorted value
@@ -49,6 +49,14 @@ def hamming_Distance(s1, s2):
 
     for i in range(len(s1)):
         if s1[i] != s2[i]:
+            count +=1
+    return count
+
+def similar_Distance(s1, s2):
+    count = 0
+    assert len(s1) == len(s2)
+    for i in range(len(s1)):
+        if s1[i] == s2[i]:
             count +=1
     return count
 

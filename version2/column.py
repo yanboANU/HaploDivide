@@ -55,7 +55,8 @@ class Column:
         self._map_content = s   
         #print (s)
 
-        
+        if self._cov <= 10:
+            return       
 
         if len(s[0][1]) >= self._cov*0.7 and s[0][0] != self._nucleotide:
             print ("reference position %s wrong" % (self._ref_pos))

@@ -20,7 +20,7 @@ if __name__ == "__main__":
         #readName = read.query_name
         #readMapScore = read.mapping_quality
         mapped = float(read.qlen)/len(read.query_sequence)
-        if mapped >= 0.7:
+        if mapped >= 0.5:
             count += 1
             newBam.write(read)
 

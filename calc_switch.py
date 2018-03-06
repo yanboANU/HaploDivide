@@ -7,13 +7,14 @@ from itertools import ifilter,imap
 import collections
 
 class Sequence(object):
-    def __init__(self, name, length, s, e, seq):
+    def __init__(self, name, length, s, e, seq, direction):
         self.name = name
         self.length = int(length)
         self.s = int(s)
         self.e = int(e)
         self.seq = seq   # ATCG- 
         self.seqPos = [] 
+        self.dir = direction 
         # seqPos[i] = j , the position in self sequence(have no -) j is reposible to i in alignSeq(self.seq) 
     
     def printSeq(self):
@@ -21,11 +22,19 @@ class Sequence(object):
     
     def generateSeqPos(self):
         #align seqence to position sequence in original seq 
-        ss = self.s
-        for ii in self.seq:
-            self.seqPos.append(ss)
-            if ii !=  '-':
-                ss += 1 
+        if self.dir == '+':
+            ss = self.s
+            for ii in self.seq:
+                self.seqPos.append(ss)
+                if ii !=  '-':
+                    ss += 1 
+        
+        if self.dir == '-':
+            ss = self.s
+            for ii in self.seq:
+                self.seqPos.append(self.length-1 - ss)
+                if ii !=  '-':
+                    ss += 1 
     
     def printSeqPart(self,start,ll):
         print self.seq[start:start+ll] 
@@ -37,11 +46,13 @@ class Sequence(object):
         f.write(self.seq) 
 
 class Alignment(object):
-    def __init__(self, left, right, align):
+    def __init__(self, left, right, align, leftDir, rightDir):
         self.left = left    # Sequence, align seq (include '-')
         self.right = right  # Sequence
         self.align = align  # ||| ***
         self.score = [0, 0, 0, 0, 0, 0] 
+        self.left_dir = leftDir
+        self.right_dir = rightDir 
         # socre1, matchNum, insertNum, delNum, gapNum, score2
  
     def writeScore(self, f):
@@ -275,25 +286,27 @@ def read_blasr_m5(fileName):
 
         #print words[:4] 
         queryName, queryLen, queryS, queryE = words[:4]
+        queryDirection = words[4]
         targetName, targetLen, targetS, targetE = words[5:5+4]
+        targetDirection = words[9] 
  
         querySeq = words[-3]   # ATCG-
         align = words[-2]      # |,*
         targetSeq = words[-1]  # ATCG-    
  
     f.close()
-    query = Sequence(queryName, queryLen, queryS, queryE, querySeq) 
-    target = Sequence(targetName, targetLen, targetS, targetE, targetSeq)
-    alignObj = Alignment(query, target, align)  
+    query = Sequence(queryName, queryLen, queryS, queryE, querySeq, queryDirection) 
+    target = Sequence(targetName, targetLen, targetS, targetE, targetSeq, targetDirection)
+    alignObj = Alignment(query, target, align, queryDirection, targetDirection)  
     return alignObj
  
 
 
 if __name__ == "__main__":
-   
+    ''' 
     if(len(sys.argv) <= 4):
         print "Usage: python calc_swith.py mutation_ref_m5.blasr contig_ref_m5.blasr contig_mutation_m5.blasr mergeLen"   
-
+    '''
     # blasr ref mutation output(m5) 
     # blasr ref contig
     # blasr mutation contig
@@ -314,6 +327,8 @@ if __name__ == "__main__":
         if alignRM.align[i] == '*':
             check.append(i)
     '''
+   
+    '''  
     mergeLen = int(sys.argv[4])
     check = giveCheckPos(alignRM.align, mergeLen)
         
@@ -403,6 +418,6 @@ if __name__ == "__main__":
             switchNum += 1
     print "switchNum number: ", switchNum
     print "total number: ", len(res)
-     
+    ''' 
 
 

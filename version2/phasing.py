@@ -196,13 +196,13 @@ class Phasing:
        
  
         print ("check can link or not")
-        print (phase0.intersection(self._phase0s[-1])) #1
-        print (phase0.intersection(self._phase1s[-1])) #0
-        print (phase1.intersection(self._phase0s[-1])) #1
-        print (phase1.intersection(self._phase1s[-1])) #0
+        print ("0 intersection new 0", len(phase0.intersection(self._phase0s[-1]))) #1
+        print ("0 intersection new 1", len(phase0.intersection(self._phase1s[-1]))) #0
+        print ("1 intersection new 0", len(phase1.intersection(self._phase0s[-1]))) #1
+        print ("1 intersection new 1", len(phase1.intersection(self._phase1s[-1]))) #0
         
-        print (self._positions[-1])
-        print (position)
+        print ("pre pos:", self._positions[-1])
+        print ("new pos:", position)
   
         pre_position = self._positions[-1]
         if pre_position[-1] >= position[0]:
@@ -324,16 +324,20 @@ class Phasing:
             unphased = phase0.intersection(phase1)
             if len( unphased ) > 0:
                 self._re_phasing(unphased, label0, label1, phase0, phase1, readsLabel, position)
-           
+          
+            
+            self._final_check(label0, label1, phase0, phase1, position, readsLabel)             
             if len(self._phase0s) > 0: 
                 print ("phasing more longer change 1")
                 print (phase0)
                 print (phase1)
                 print (self._phase0s[-1])
                 print (self._phase1s[-1])
+                
                 if self._can_link_phases(label0, label1, phase0, phase1, position):
                     self._update_in_link_way(label0, label1, phase0, phase1, position, readsLabel) 
                     return  
+                  
             self._label0s.append(label0)
             self._label1s.append(label1)
             assert len(phase0.intersection(phase1)) == 0
@@ -437,6 +441,39 @@ class Phasing:
             self._phase1s.append(phase1)
             self._positions.append(position) 
         '''
+
+    def _final_check(self, label0, label1, phase0, phase1, position, readsLabel):
+        (s,e) = tools.get_Range_From_List(position, self._snp)
+        remove = set()
+        for read in phase0: 
+            readL = ''.join(str(j) for j in readsLabel[read][s:e])
+            #print (read, tools.similar_Distance(readL, label0))
+            ''' 
+            if ( tools.hamming_Distance(label1, readL) - 
+                    tools.hamming_Distance(label0, readL) < 3):
+                remove.add(read)
+            '''
+            if tools.similar_Distance(readL, label0) < 10:
+                remove.add(read)
+            
+        for r in remove:
+            phase0.remove(r)   
+
+        remove = set()
+        for read in phase1: 
+            readL = ''.join(str(j) for j in readsLabel[read][s:e])
+            #print (read, tools.similar_Distance(readL, label1)) 
+            '''  
+            if ( tools.hamming_Distance(label0, readL) - 
+                    tools.hamming_Distance(label1, readL) < 3):
+                remove.add(read)
+            '''
+            if tools.similar_Distance(readL, label1) < 10:
+                remove.add(read) 
+            
+        for r in remove:
+            phase1.remove(r)   
+
     def _re_phasing(self, unphased, label0, label1, phase0, phase1, readLabel, position):
         (s,e) = tools.get_Range_From_List(position, self._snp)
         for read in unphased:
@@ -477,13 +514,11 @@ class Phasing:
                 phase0.update(phase0.union(set(labelReads[v[0]])))
             elif ( tools.hamming_Distance(v[0], label0[-3:]) > tools.hamming_Distance(v[0], label1[-3:]) ):
                 phase1.update(phase1.union(set(labelReads[v[0]])))
-            else:
-                print ("same distance", v)
-            
+            #else:
+                #print ("same distance", v)
 
         #print (label0, len(phase0), phase0)      
         #print (label1, len(phase1), phase1)      
-        
-   
         #print ("intersection:", phase0.intersection(phase1) )
         return label0, label1
+
