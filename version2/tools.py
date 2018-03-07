@@ -88,8 +88,8 @@ def pos_2_Range(stablePos):
 def get_Range_From_List(small, large):
     
 
-    print ("small:", small)
-    print ("large:", large)
+    #print ("small:", small)
+    #print ("large:", large)
     assert set(small).intersection(large) == set(small)
     
     #for ele in large:
@@ -105,3 +105,29 @@ def is_SubRange(i, j, stableRange):
         if a >= j:
             return False
     return False
+
+def get_Cover_Range(rangeList):
+
+    # 3 is not cover
+    s = 0
+    e = 0
+    i = 0
+    for c in rangeList:
+        if c != 3:
+            s = i
+            break
+        i += 1
+    while i < len(rangeList):
+        if rangeList[i] == 3:
+            e = i
+            break    
+        i += 1
+    if e == 0:
+        e = len(rangeList)
+    assert (rangeList[s:e].count(3)==0) 
+    #print (s,e)
+    return (s,e)
+
+         
+
+ 
