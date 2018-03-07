@@ -85,11 +85,6 @@ class Phasing:
         self._snp_delete = []
         self._snp_insert = []
         self._coverage = []
-        # self.label0 = ""
-        # self.label1 = ""
-        # self.phase0 = []
-        # self.phase1 = [] 
-
         self._snp = []
      
         #output
@@ -222,9 +217,12 @@ class Phasing:
  
         self._label0s[-1] += labelx[s:]
         self._label1s[-1] += labely[s:]
-        phasex.update(self._phase0s[-1].union(phasex))   
+        #phasex = self._phase0s[-1].union(phasex)   
+        
+        phasex.update(self._phase0s[-1])
         #self._phase0s[-1].update(self._phase0s[-1].union(phase0))
-        phasey.update(self._phase1s[-1].union(phasey))
+        #phasey = self._phase1s[-1].union(phasey)
+        phasey.update(self._phase1s[-1])
 
         unphased = phasex.intersection(phasey)
         if len( unphased ) > 0:
@@ -232,13 +230,19 @@ class Phasing:
             print (unphased) 
             print (len(self._label0s[-1]) , self._label0s[-1])
             print (len(self._label1s[-1]) , self._label1s[-1])
-            print (len(self._positions[-1]) , self._positions[-1])
+            print ("before intersection check after link", len(phasex) , len(phasey))
             self._re_phasing(unphased, self._label0s[-1], self._label1s[-1] , phasex, phasey, readsLabel, self._positions[-1])
            
+            print ("after intersection check after link1 ", len(phasex) , len(phasey))
         assert len(phasex.intersection(phasey)) == 0
-        self._phase0s[-1].update(phasex)
-        self._phase1s[-1].update(phasey)
-      
+
+        print ("after intersection check after link2", len(phasex) , len(phasey))
+        # a.update(b) # b small than a
+        # a.update(b) is add element
+        self._phase0s[-1] = phasex
+        self._phase1s[-1] = phasey
+        print ("after intersection check after link3", len(self._phase0s[-1]) , len(self._phase1s[-1]))
+
     def _update_in_link_way(self,label0, label1, phase0, phase1, position, readsLabel):
 
         print ("update in link way ")  
@@ -251,28 +255,16 @@ class Phasing:
                     if ( label0[:i+1] == self._label0s[-1][-(i+1):] and
                          label1[:i+1] == self._label1s[-1][-(i+1):] ):
                         self._update_labels(label0, label1, i+1, phase0, phase1, readsLabel)
-                        ''' 
-                        self._label0s[-1] += label0[i+1:] 
-                        self._label1s[-1] += label1[i+1:]
-                        self._phase0s[-1].update(self._phase0s[-1].union(phase0))
-                        self._phase1s[-1].update(self._phase1s[-1].union(phase1))
-                        '''
                     elif ( label0[:i+1] == self._label1s[-1][-(i+1):] and
                            label1[:i+1] == self._label0s[-1][-(i+1):] ):
 
                         self._update_labels(label1, label0, i+1, phase1, phase0, readsLabel)
-                        '''
-                        self._label0s[-1] += label1[i+1:] 
-                        self._label1s[-1] += label0[i+1:]
-                        self._phase0s[-1].update(self._phase0s[-1].union(phase1))
-                        self._phase1s[-1].update(self._phase1s[-1].union(phase0))
-                        '''
                     else:
                         print ("link error 1")   
                     return  
-        print (self._snp)
-        print (position)
-        print (pre_position[-1])
+        #print (self._snp)
+        #print (position)
+        #print (pre_position[-1])
          
         s = self._snp.index(pre_position[-1]) + 1
         e = self._snp.index(position[0])
@@ -290,28 +282,10 @@ class Phasing:
              len(phase1.intersection(self._phase1s[-1])) > len(phase1.intersection(self._phase0s[-1])) ):
  
             self._update_labels(label0, label1, 0, phase0, phase1, readsLabel)
-            '''
-            self._label0s[-1] += label0
-            self._label1s[-1] += label1
-            #self._phase0s[-1].extend(phase0)
-            #self._phase1s[-1].extend(phase1)
-
-            self._phase0s[-1].update(self._phase0s[-1].union(phase0))
-            self._phase1s[-1].update(self._phase1s[-1].union(phase1))
-            '''
         elif ( len(phase0.intersection(self._phase0s[-1])) < len(phase0.intersection(self._phase1s[-1])) and	
              len(phase1.intersection(self._phase1s[-1])) < len(phase1.intersection(self._phase0s[-1])) ): 
             
             self._update_labels(label1, label0, 0, phase1, phase0, readsLabel)
-            '''
-            self._label0s[-1] += label1
-            self._label1s[-1] += label0
-            #self._phase0s[-1].extend(phase1)
-            #self._phase1s[-1].extend(phase0)
-
-            self._phase0s[-1].update(self._phase0s[-1].union(phase1))
-            self._phase1s[-1].update(self._phase1s[-1].union(phase0))
-            '''  
         else: 
             print ("link error 2")
 
@@ -321,23 +295,22 @@ class Phasing:
     def _update(self, label0, label1, phase0, phase1, readsLabel, position):
 
         if len(position) > 0:
+            print ("before ratio check ",len(phase0), len(phase1) )
+            self._cover_ratio_check(label0, label1, phase0, phase1, position, readsLabel)             
+            
+            print ("after ratio check ",len(phase0), len(phase1) )
             unphased = phase0.intersection(phase1)
             if len( unphased ) > 0:
                 self._re_phasing(unphased, label0, label1, phase0, phase1, readsLabel, position)
           
-            
-            self._final_check(label0, label1, phase0, phase1, position, readsLabel)             
+                print ("after intersection check ",len(phase0), len(phase1) )
+            '''              
             if len(self._phase0s) > 0: 
                 print ("phasing more longer change 1")
-                print (phase0)
-                print (phase1)
-                print (self._phase0s[-1])
-                print (self._phase1s[-1])
-                
                 if self._can_link_phases(label0, label1, phase0, phase1, position):
                     self._update_in_link_way(label0, label1, phase0, phase1, position, readsLabel) 
                     return  
-                  
+            '''      
             self._label0s.append(label0)
             self._label1s.append(label1)
             assert len(phase0.intersection(phase1)) == 0
@@ -389,7 +362,7 @@ class Phasing:
             '''
             if ( len(allCoverPhases)>=2 and allCoverPhases[0][1] > cov * 0.2 and allCoverPhases[1][1] > cov * 0.2
                and tools.is_Bool_Reverse(allCoverPhases[0][0], allCoverPhases[1][0]) and 
-                 (label0[-2:] == allCoverPhases[0][0][:2] or label0[-2:] == allCoverPhases[1][0][:2] ) ):
+                 (len(label0) == 0 or label0[-2:] == allCoverPhases[0][0][:2] or label0[-2:] == allCoverPhases[1][0][:2] ) ):
                 label0, label1 = self._phasing_one_window(allCoverPhases, phases, label0, label1, phase0, phase1)
                 if len(position) == 0:
                     position.extend(self._snp[i:i+3])
@@ -398,6 +371,7 @@ class Phasing:
                 #sys.exit()
             else:
  
+                print ("before update ",len(phase0), len(phase1) )
                 self._update(label0, label1, phase0, phase1, readsLabel, position)                
                 '''
                 if len(position) > 0:
@@ -443,35 +417,54 @@ class Phasing:
             self._positions.append(position) 
         '''
 
-    def _final_check(self, label0, label1, phase0, phase1, position, readsLabel):
+    def _cover_ratio_check(self, label0, label1, phase0, phase1, position, readsLabel):
         (s,e) = tools.get_Range_From_List(position, self._snp)
         remove = set()
         for read in phase0: 
-            readL = ''.join(str(j) for j in readsLabel[read][s:e])
-            #print (read, tools.similar_Distance(readL, label0))
-            ''' 
-            if ( tools.hamming_Distance(label1, readL) - 
-                    tools.hamming_Distance(label0, readL) < 3):
-                remove.add(read)
+            # read cover range
+            coverRange = tools.get_Cover_Range(readsLabel[read])
             '''
-            if tools.similar_Distance(readL, label0) < 10:
+            if read == "S1_4946" or read == "S1_1830" or read == "S1_7403":
+                print (read, s, e, coverRange)
+                print ("readsLabel: for check coverRange rigth or not")
+                print (readsLabel[read])
+                readL = ''.join(str(j) for j in readsLabel[read][s:e])
+                print ("read ", readL)
+                print ("label", label0)
+            '''
+            # (6, 12)  phasing (10, 15), remove read only cover head part
+            coverLength = coverRange[1] - coverRange[0]
+            if (coverRange[0] < s and coverRange[1] > s  and  coverRange[1] < e and 
+                  (coverRange[1] - s) < coverLength * 0.8 ):           
                 remove.add(read)
-            
+           
+            # (12, 20)  phasing (10, 15), remove read only cover tail part
+            if (coverRange[0] < e and coverRange[1] > e and 
+                  (e - coverRange[0]) < coverLength * 0.8 ):           
+                remove.add(read)
         for r in remove:
             phase0.remove(r)   
-
         remove = set()
         for read in phase1: 
-            readL = ''.join(str(j) for j in readsLabel[read][s:e])
-            #print (read, tools.similar_Distance(readL, label1)) 
-            '''  
-            if ( tools.hamming_Distance(label0, readL) - 
-                    tools.hamming_Distance(label1, readL) < 3):
-                remove.add(read)
+            # (6, 12)  phasing (10, 15)
+            coverRange = tools.get_Cover_Range(readsLabel[read])
+            coverLength = coverRange[1] - coverRange[0] 
             '''
-            if tools.similar_Distance(readL, label1) < 10:
-                remove.add(read) 
-            
+            if read == "S1_4946" or read == "S1_1830" or read == "S1_7403":
+                print (read, s, e, coverRange)
+                print ("readsLabel: for check coverRange rigth or not")
+                print (readsLabel[read])
+                readL = ''.join(str(j) for j in readsLabel[read][s:e])
+                print ("read ", readL)
+                print ("label", label1)
+            ''' 
+            if (coverRange[0] < s and coverRange[1] > s  and  coverRange[1] < e and 
+                  (coverRange[1] - s ) < coverLength * 0.8 ):            
+                remove.add(read)
+                
+            if (coverRange[0] < e and coverRange[1] > e and 
+                  (e - coverRange[0] ) < coverLength * 0.8 ):            
+                remove.add(read)
         for r in remove:
             phase1.remove(r)   
 
@@ -514,9 +507,12 @@ class Phasing:
    
         for v in allCoverPhases:
             if ( tools.hamming_Distance(v[0], label0[-3:]) < tools.hamming_Distance(v[0], label1[-3:]) ):
-                phase0.update(phase0.union(set(labelReads[v[0]])))
+                #phase0 = phase0.union(set(labelReads[v[0]]))
+                # must update, using = , error
+                phase0.update(set(labelReads[v[0]])) 
             elif ( tools.hamming_Distance(v[0], label0[-3:]) > tools.hamming_Distance(v[0], label1[-3:]) ):
-                phase1.update(phase1.union(set(labelReads[v[0]])))
+                #phase1 = phase1.union(set(labelReads[v[0]]))
+                phase1.update(set(labelReads[v[0]])) 
             #else:
                 #print ("same distance", v)
 
