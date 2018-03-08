@@ -304,13 +304,13 @@ class Phasing:
                 self._re_phasing(unphased, label0, label1, phase0, phase1, readsLabel, position)
           
                 print ("after intersection check ",len(phase0), len(phase1) )
-            '''              
+                
             if len(self._phase0s) > 0: 
                 print ("phasing more longer change 1")
                 if self._can_link_phases(label0, label1, phase0, phase1, position):
                     self._update_in_link_way(label0, label1, phase0, phase1, position, readsLabel) 
                     return  
-            '''      
+            
             self._label0s.append(label0)
             self._label1s.append(label1)
             assert len(phase0.intersection(phase1)) == 0
