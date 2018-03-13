@@ -128,6 +128,10 @@ def get_Cover_Range(rangeList):
     #print (s,e)
     return (s,e)
 
-         
+def count01(l):
+    count = 0
+    for c in l:
+        if c == 0 or c==1:
+            count += 1
+    return count 
 
- 
