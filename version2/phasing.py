@@ -20,6 +20,7 @@ class Phasing:
         n =  len(self._label0s)
         fout.write("name: %s len: %s\n" % (self._contig._name, self._contig._len))
         fout.write("snp mutation number: %s\n" % (len(self._snp_mutation)))
+        fout.write("snp mutation rate: %s\n" % (len(self._snp_mutation)/float(self._contig._len)))
         fout.write("snp delete number: %s\n" % (len(self._snp_delete)))
         fout.write("divide in %s sequences\n" % (n)) 
         #assert n == len(self._label1s)
@@ -423,20 +424,28 @@ class Phasing:
         for read in phase0: 
             # read cover range
             coverRange = tools.get_Cover_Range(readsLabel[read])
-            '''
-            if read == "S1_4946" or read == "S1_1830" or read == "S1_7403":
-                print (read, s, e, coverRange)
+            
+            if read == "S1_2737" or read == "S1_6599" or read == "S1_3419":
+            #if read == "S1_298" or read == "S1_5935" or read == "S1_4331":
+                print (read, s, e, "read cover:", coverRange)
                 print ("readsLabel: for check coverRange rigth or not")
                 print (readsLabel[read])
                 readL = ''.join(str(j) for j in readsLabel[read][s:e])
                 print ("read ", readL)
                 print ("label", label0)
-            '''
+            
             # (6, 12)  phasing (10, 15), remove read only cover head part
             coverLength = coverRange[1] - coverRange[0]
+            coverLabel = readsLabel[read][coverRange[0]:coverRange[1]]
+            if tools.count01(coverLabel) < 3:
+                remove.add(read)
+                print ("remove ", read, "becase cover label:", coverLabel) 
+                continue 
+    
             if (coverRange[0] < s and coverRange[1] > s  and  coverRange[1] < e and 
                   (coverRange[1] - s) < coverLength * 0.8 ):           
                 remove.add(read)
+                continue
            
             # (12, 20)  phasing (10, 15), remove read only cover tail part
             if (coverRange[0] < e and coverRange[1] > e and 
@@ -449,18 +458,26 @@ class Phasing:
             # (6, 12)  phasing (10, 15)
             coverRange = tools.get_Cover_Range(readsLabel[read])
             coverLength = coverRange[1] - coverRange[0] 
-            '''
-            if read == "S1_4946" or read == "S1_1830" or read == "S1_7403":
-                print (read, s, e, coverRange)
+            
+            if read == "S1_2737" or read == "S1_6599" or read == "S1_3419":
+                print (read, s, e, "read cover", coverRange)
                 print ("readsLabel: for check coverRange rigth or not")
                 print (readsLabel[read])
                 readL = ''.join(str(j) for j in readsLabel[read][s:e])
                 print ("read ", readL)
                 print ("label", label1)
-            ''' 
+           
+             
+            coverLabel = readsLabel[read][coverRange[0]:coverRange[1]]
+            if tools.count01(coverLabel) < 3:
+                remove.add(read)
+                print ("remove ", read, "becase cover label:", coverLabel) 
+                continue 
+ 
             if (coverRange[0] < s and coverRange[1] > s  and  coverRange[1] < e and 
                   (coverRange[1] - s ) < coverLength * 0.8 ):            
                 remove.add(read)
+                continue
                 
             if (coverRange[0] < e and coverRange[1] > e and 
                   (e - coverRange[0] ) < coverLength * 0.8 ):            
