@@ -181,14 +181,25 @@ class Phasing:
                         readsLabel[readId] = [3]*len(self._snp)
                     readsLabel[readId][i] = 2
                 j += 1    
-                    
+        
+        fout = open("readsLabel", "w")
+        for readId in readsLabel:
+            coverRange = tools.get_Cover_Range(readsLabel[readId])
+            coverLength = coverRange[1] - coverRange[0] 
+             
+            coverLabel = readsLabel[readId][coverRange[0]:coverRange[1]]
+            fout.write("readId: %s coverLength %s 0/1 length %s\n" % (readId, coverLength, tools.count01(coverLabel)))
+            fout.write( ''.join(str(c) for c in coverLabel ))
+            fout.write("\n") 
+
         # sortFlag = tools.sorted_Map_Value(readsLabel, False)
         # print ("show reads label")
         # for ele in sortFlag:
         #     print (ele)
         return readsLabel       
 
-    def _can_link_phases(self, label0, label1, phase0, phase1, position):
+    '''
+    def _can_link_phases_loose_way(self, label0, label1, phase0, phase1, position):
        
  
         print ("check can link or not")
@@ -199,18 +210,56 @@ class Phasing:
         
         print ("pre pos:", self._positions[-1])
         print ("new pos:", position)
+        
+        _0id = tools.only0( len(phase0.intersection(self._phase0s[-1])), len(phase0.intersection(self._phase1s[-1])) ,	
+             len(phase1.intersection(self._phase1s[-1])) , len(phase1.intersection(self._phase0s[-1])) )
+        # three are 0, only one not 0
+        if _0id > 0:
+            return True
+        #
+        else:
+            print ("canot loose link")
+            return False
+    '''
+
+
+
+    def _can_link_phases(self, label0, label1, phase0, phase1, position):
+       
+
+        intersection00 = len(phase0.intersection(self._phase0s[-1]))
+        intersection01 = len(phase0.intersection(self._phase1s[-1]))
+        intersection10 = len(phase1.intersection(self._phase0s[-1]))
+        intersection11 = len(phase1.intersection(self._phase1s[-1]))
+        print ("check can link or not")
+        print ("0 intersection new 0", intersection00) #1
+        print ("0 intersection new 1", intersection01) #0
+        print ("1 intersection new 0", intersection10) #1
+        print ("1 intersection new 1", intersection11) #0
+        
+        print ("pre pos:", self._positions[-1])
+        print ("new pos:", position)
   
         pre_position = self._positions[-1]
         if pre_position[-1] >= position[0]:
             return True
-        
-        if ( len(phase0.intersection(self._phase0s[-1])) > len(phase0.intersection(self._phase1s[-1])) and	
-             len(phase1.intersection(self._phase1s[-1])) > len(phase1.intersection(self._phase0s[-1])) ): 
+       
+        if intersection00 == 0 and intersection01 == 0 and intersection10 == 0 and intersection11 == 0:
+            print ("canot link both 0")
+            return False
+
+        if ( len(phase0.intersection(self._phase0s[-1])) >= len(phase0.intersection(self._phase1s[-1])) and	
+             len(phase1.intersection(self._phase1s[-1])) >= len(phase1.intersection(self._phase0s[-1])) ): 
             return True
-        elif ( len(phase0.intersection(self._phase0s[-1])) < len(phase0.intersection(self._phase1s[-1])) and	
-             len(phase1.intersection(self._phase1s[-1])) < len(phase1.intersection(self._phase0s[-1])) ):
+        elif ( len(phase0.intersection(self._phase0s[-1])) <= len(phase0.intersection(self._phase1s[-1])) and	
+             len(phase1.intersection(self._phase1s[-1])) <= len(phase1.intersection(self._phase0s[-1])) ):
             return True
         else:
+            print ("canot link 0 intersection new 0", len(phase0.intersection(self._phase0s[-1]))) #1
+            print ("canot link 0 intersection new 1", len(phase0.intersection(self._phase1s[-1]))) #0
+            print ("canot link 1 intersection new 0", len(phase1.intersection(self._phase0s[-1]))) #1
+            print ("canot link 1 intersection new 1", len(phase1.intersection(self._phase1s[-1]))) #0
+        
             print ("canot link")
             return False
 
@@ -279,12 +328,12 @@ class Phasing:
 
         print ("link type 2:")
         print (s, e)
-        if ( len(phase0.intersection(self._phase0s[-1])) > len(phase0.intersection(self._phase1s[-1])) and	
-             len(phase1.intersection(self._phase1s[-1])) > len(phase1.intersection(self._phase0s[-1])) ):
+        if ( len(phase0.intersection(self._phase0s[-1])) >= len(phase0.intersection(self._phase1s[-1])) and	
+             len(phase1.intersection(self._phase1s[-1])) >= len(phase1.intersection(self._phase0s[-1])) ):
  
             self._update_labels(label0, label1, 0, phase0, phase1, readsLabel)
-        elif ( len(phase0.intersection(self._phase0s[-1])) < len(phase0.intersection(self._phase1s[-1])) and	
-             len(phase1.intersection(self._phase1s[-1])) < len(phase1.intersection(self._phase0s[-1])) ): 
+        elif ( len(phase0.intersection(self._phase0s[-1])) <= len(phase0.intersection(self._phase1s[-1])) and	
+             len(phase1.intersection(self._phase1s[-1])) <= len(phase1.intersection(self._phase0s[-1])) ): 
             
             self._update_labels(label1, label0, 0, phase1, phase0, readsLabel)
         else: 
@@ -297,7 +346,9 @@ class Phasing:
 
         if len(position) > 0:
             print ("before ratio check ",len(phase0), len(phase1) )
-            self._cover_ratio_check(label0, label1, phase0, phase1, position, readsLabel)             
+
+            self._cover_01_check(label0, label1, phase0, phase1, position, readsLabel)             
+            #self._cover_ratio_check(label0, label1, phase0, phase1, position, readsLabel)             
             
             print ("after ratio check ",len(phase0), len(phase1) )
             unphased = phase0.intersection(phase1)
@@ -309,9 +360,15 @@ class Phasing:
             if len(self._phase0s) > 0: 
                 print ("phasing more longer change 1")
                 if self._can_link_phases(label0, label1, phase0, phase1, position):
+                    print ("link")
                     self._update_in_link_way(label0, label1, phase0, phase1, position, readsLabel) 
                     return  
-            
+                '''  
+                if self._can_link_phases_loose_way(label0, label1, phase0, phase1, position):
+                    print ("loose link")
+                    self._update_in_loose_link_way(label0, label1, phase0, phase1, position, readsLabel) 
+                    return  
+                '''
             self._label0s.append(label0)
             self._label1s.append(label1)
             assert len(phase0.intersection(phase1)) == 0
@@ -417,6 +474,9 @@ class Phasing:
             self._phase1s.append(phase1)
             self._positions.append(position) 
         '''
+
+
+
 
     def _cover_ratio_check(self, label0, label1, phase0, phase1, position, readsLabel):
         (s,e) = tools.get_Range_From_List(position, self._snp)
@@ -538,3 +598,31 @@ class Phasing:
         #print ("intersection:", phase0.intersection(phase1) )
         return label0, label1
 
+    def _cover_01_check(self, label0, label1, phase0, phase1, position, readsLabel):
+        (s,e) = tools.get_Range_From_List(position, self._snp)
+        remove = set()
+        for read in phase0: 
+            # read cover range
+            coverRange = tools.get_Cover_Range(readsLabel[read])
+            coverLength = coverRange[1] - coverRange[0]
+            coverLabel = readsLabel[read][coverRange[0]:coverRange[1]]
+            if tools.count01(coverLabel) < 3:
+                remove.add(read)
+                print ("remove ", read, "becase cover label:", coverLabel) 
+    
+        for r in remove:
+            phase0.remove(r)   
+        remove = set()
+        for read in phase1: 
+            # (6, 12)  phasing (10, 15)
+            coverRange = tools.get_Cover_Range(readsLabel[read])
+            coverLength = coverRange[1] - coverRange[0] 
+             
+            coverLabel = readsLabel[read][coverRange[0]:coverRange[1]]
+
+            if tools.count01(coverLabel) < 3:
+                remove.add(read)
+                print ("remove ", read, "becase cover label:", coverLabel) 
+    
+        for r in remove:
+            phase1.remove(r)   

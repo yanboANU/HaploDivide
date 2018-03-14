@@ -135,3 +135,17 @@ def count01(l):
             count += 1
     return count 
 
+def only0(a,b,c,d):
+    if a != 0 and b == 0 and c == 0 and d == 0:
+        return 1
+
+    if a == 0 and b != 0 and c == 0 and d == 0:
+        return 2
+
+    if a == 0 and b == 0 and c != 0 and d == 0:
+        return 3
+
+    if a == 0 and b == 0 and c == 0 and d != 0:
+        return 4
+
+    return 0
