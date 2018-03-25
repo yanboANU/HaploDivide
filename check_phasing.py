@@ -56,7 +56,8 @@ def read_result(filename, divide):
     #fout.close()
 
 if __name__ == "__main__":
-
+    # input: ***phasing_result , readId
+     
     read_result(sys.argv[1], sys.argv[2])
 
 

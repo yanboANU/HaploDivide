@@ -46,14 +46,15 @@ def read_align(filename):
 def read_mutation_record(filename):
     f = open(filename, "r")
 
-    pos = []  
+    pos = []
+    mutation = {}
     for line in f:  
         words = line.split()
         pos.append(int(words[0]))
-    
+        mutation[pos] = (words[1], words[2])
     #print ("real snp pos:")
     #print (pos)
-    return pos
+    return pos, mutation
 
 def read_snp_mutation(filename):
     snp_pos = []
@@ -93,6 +94,32 @@ def convert(align, name, pos):
   
     return result, not_find 
 
+
+
+def convert_reverse(align, name, pos):
+    assert name in align
+    align_pairs = align[name]
+    align_map = {} # key is contig_pos, value is ref_pos
+    for (i, j) in align_pairs:
+        if isinstance(i, int) and isinstance(j, int): 
+            align_map[j] = i
+
+    #print ("align pairs number:", len(align_pairs))
+    #print ("both int number", len(align_map))
+    result = []
+    not_find = [] #alignment not report 
+    for p in pos:
+        if p in align_map:
+            #print (p, align_map[p])
+            result.append(align_map[p])
+        else:
+            not_find.append(p)
+
+    return result, not_find 
+
+
+
+
 if __name__ == "__main__":
 
     #filter_SAM(sys.argv[1], sys.argv[2])
@@ -100,13 +127,18 @@ if __name__ == "__main__":
     #/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/mutation_record
     #/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/haplo/after_filter/contig_1_snp_mutation
     #align = deal_sam.get_align_pos(sys.argv[1]) # bwa mem result
+    
+
+    #before run this script
+    #step1: blasr:  scaffold.fasta ref.fasta 
+    #step2: input: blasr result, output:  align_pos(calc_switch)
     if len(sys.argv) < 4:
         print ("python " + sys.argv[0] + " /media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/align_pos  /media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/mutation_record /media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/haplo/after_filter/contig_1_snp_mutation")
         sys.exit()
 
-    align = read_align(sys.argv[1]) # blasr result, align_pos
+    align = read_align(sys.argv[1]) # blasr result
     # pos in ref
-    real_snp_pos = read_mutation_record(sys.argv[2])
+    real_snp_pos, real_snp_content = read_mutation_record(sys.argv[2])
 
     #pos in contig
     (name, contig_snp_pos) = read_snp_mutation(sys.argv[3])  
@@ -119,8 +151,24 @@ if __name__ == "__main__":
     print ("number of real snp:", len(real_snp_pos))
     print ("number of pre snp:", len(ref_snp_pos))
 
-    print ("TP number:", len(set(ref_snp_pos).intersection(set(real_snp_pos))))
+
+    TP  =  set(ref_snp_pos).intersection(set(real_snp_pos))
+
+    print ("TP number:", len(TP))
     print ("not found number:", len(not_find))
+
+    fout = open("TP_in_reference")
+    for cc in sorted(TP):
+        fout.write("%s ",cc)
+    fout.close()
+
+    fout2 = open("TP_in_"+name)
+    TP_in_contig, nf = convert_reverse(align, name, TP)
+
+    print ("TP in contig number:", len(TP_in_contig))
+    for cc in sorted(TP_in_conig):
+        fout2.write("%s ",cc)
+    fout2.close()
 
     print ("FP number:", len(set(ref_snp_pos) - set(real_snp_pos)))
 
