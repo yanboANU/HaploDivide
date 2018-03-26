@@ -183,7 +183,8 @@ class Phasing:
                     readsLabel[readId][i] = 2
                 j += 1    
         
-        fout = open("readsLabel", "w")
+        #fout = open("readsLabel", "w")
+        fout = open(self._contig._name + "readsLabel", "w") 
         for readId in readsLabel:
             coverRange = tools.get_Cover_Range(readsLabel[readId])
             coverLength = coverRange[1] - coverRange[0] 
