@@ -143,9 +143,10 @@ class Phasing:
 
         fout = open(self._contig._name+"_snp_mutation","w")
         fout.write("name: %s len: %s\n" % (self._contig._name, self._contig._len))
-        fout.write("snp mutation number: %s\n" % (len(self._snp_mutation)))
+        fout.write("snp mutation number: %s \n" % (len(self._snp_mutation)))
         for sm in self._snp_mutation:
-            fout.write("%s " % sm)
+            fout.write("%s %s %s " % (sm, self._columns[sm]._map_content[0][0], len(self._columns[sm]._map_content[0][1])))
+            fout.write("%s %s" % (self._columns[sm]._map_content[1][0], len(self._columns[sm]._map_content[1][1])))
             fout.write("\n")
         fout.close()
 

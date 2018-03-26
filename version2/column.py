@@ -20,6 +20,7 @@ class Column:
         self._map_content = {}
         self._nucleotide = ''
         self._cov = 0
+        self._diff_cov = []
         self._insert_content = {}
         self._is_insert = -1
         self._is_mutation = -1
@@ -27,7 +28,11 @@ class Column:
         self._is_stable = -1    
         #self.best_Content =
         #self.second_Content =
-    
+   
+    def _print(self):
+        print (self._ref_pos, self._cov)
+        print (self._diff_cov)
+
     def _is_Insert(self):
         
         insertNum = 0

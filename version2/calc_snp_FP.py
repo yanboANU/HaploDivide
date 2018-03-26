@@ -104,7 +104,7 @@ if __name__ == "__main__":
         print ("python " + sys.argv[0] + " /media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/align_pos  /media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/mutation_record /media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/haplo/after_filter/contig_1_snp_mutation")
         sys.exit()
 
-    align = read_align(sys.argv[1]) # blasr result
+    align = read_align(sys.argv[1]) # blasr result, align_pos
     # pos in ref
     real_snp_pos = read_mutation_record(sys.argv[2])
 

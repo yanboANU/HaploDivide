@@ -35,11 +35,12 @@ def read_align(filename):
     #print ("ref Pos", ref_pos)
 
     #print ("contig Pos", contig_pos)
-
+    fout = open("contig_pos_ref_pos", "w")
     align[name] =[]   
     for i in range(len(contig_pos)):
         align[name].append((contig_pos[i], ref_pos[i]))
-
+        fout.write("%s %s\n" %  (contig_pos[i], ref_pos[i]))
+    fout.close()
     #print ("align", align)
     return align
 
@@ -47,14 +48,14 @@ def read_mutation_record(filename):
     f = open(filename, "r")
 
     pos = []
-    mutation = {}
+    #mutation = {}
     for line in f:  
         words = line.split()
         pos.append(int(words[0]))
-        mutation[pos] = (words[1], words[2])
+        #mutation[pos] = (words[1], words[2])
     #print ("real snp pos:")
     #print (pos)
-    return pos, mutation
+    return pos#, mutation
 
 def read_snp_mutation(filename):
     snp_pos = []
@@ -64,7 +65,7 @@ def read_snp_mutation(filename):
         words = line.strip().split()
         if words[0] == "name:":
             name = words[1]
-        elif len(words) == 1:
+        elif len(words) == 5:
             snp_pos.append(int(words[0]))
     
     #print ("contig snp pos:")
@@ -138,7 +139,7 @@ if __name__ == "__main__":
 
     align = read_align(sys.argv[1]) # blasr result
     # pos in ref
-    real_snp_pos, real_snp_content = read_mutation_record(sys.argv[2])
+    real_snp_pos = read_mutation_record(sys.argv[2])
 
     #pos in contig
     (name, contig_snp_pos) = read_snp_mutation(sys.argv[3])  
@@ -151,24 +152,42 @@ if __name__ == "__main__":
     print ("number of real snp:", len(real_snp_pos))
     print ("number of pre snp:", len(ref_snp_pos))
 
-
+    '''
     TP  =  set(ref_snp_pos).intersection(set(real_snp_pos))
 
     print ("TP number:", len(TP))
     print ("not found number:", len(not_find))
 
-    fout = open("TP_in_reference")
+    fout = open("TP_in_reference", "w")
     for cc in sorted(TP):
-        fout.write("%s ",cc)
+        fout.write("%s " % (cc))
     fout.close()
 
-    fout2 = open("TP_in_"+name)
-    TP_in_contig, nf = convert_reverse(align, name, TP)
+    #TP_in_contig, nf = convert_reverse(align, name, TP)
+    '''
 
+    TP_in_contig_from_real, nf = convert_reverse(align, name, real_snp_pos)
+
+    TP_in_contig = set(contig_snp_pos).intersection(set(TP_in_contig_from_real))
+
+
+    fout2 = open("TP_in_"+name, "w")
     print ("TP in contig number:", len(TP_in_contig))
-    for cc in sorted(TP_in_conig):
-        fout2.write("%s ",cc)
+    for cc in sorted(TP_in_contig):
+        fout2.write("%s " % (cc))
     fout2.close()
+
+
+    TP, nf = convert(align, name, TP_in_contig)
+
+    print ("TP number:", len(TP))
+    print ("not found number:", len(not_find))
+
+    fout = open("TP_in_reference", "w")
+    for cc in sorted(TP):
+        fout.write("%s " % (cc))
+    fout.close() 
+
 
     print ("FP number:", len(set(ref_snp_pos) - set(real_snp_pos)))
 

@@ -1,0 +1,10 @@
+
+snp
+self cover <10(not consider)
+first cover ratio: < 0.7cov and second cover ratio: >= 0.3cov
+
+
+cover ratio(head tail):
+
+useless for now:
+insert cov : >0.2cov or insert length: >0.5cov 
