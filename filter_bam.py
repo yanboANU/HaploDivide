@@ -7,7 +7,8 @@ import string
 import contig
 
 
-#input : 0_16.bam 
+#input : 0_16.bam
+#every read need be covered 0.5*read_length 
 
 if __name__ == "__main__":
 
