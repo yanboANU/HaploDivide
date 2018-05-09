@@ -5,7 +5,6 @@ import os
 import pysam
 import string
 import copy
-##import contig
 
 ###################
 # map module
@@ -31,16 +30,6 @@ def sorted_Map_Value_Len(m, R=True):
     #    sortedM.append((k,m[k]))  
     return sortedM
 
-def reverse_Bool(s1):
-    s2 = ""
-    for c in s1:
-        if c == '1':
-            s2 = s2 + '0'
-        elif c == '0':
-            s2 = s2 + '1'  
-        else:
-            print ("error")  
-    return s2
 
 
 # s1 and s2 both string, only include '0'/'1' 
@@ -60,7 +49,6 @@ def hamming_Distance(s1, s2):
     for i in range(len(s1)):
         if s1[i] != s2[i]:
             count +=1
-            print (i)
     return count
 
 def similar_Distance(s1, s2):

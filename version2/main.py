@@ -34,7 +34,12 @@ def loop(bamfile, contigs):
 
 if __name__ == '__main__':
 
-    # bam file, contig file    
+    # bam file, contig file   
+    if len(sys.argv) < 3:
+        print ("python3 " + sys.argv[0] + " .bam contig/scaffold/ref")
+        sys.exit()
+   
+    print ("python3 " + sys.argv[0] + " " + sys.argv[1]+ sys.argv[2])
     bamfile = pysam.AlignmentFile(sys.argv[1], "rb")
 
     contigs = contig.read_Contig(sys.argv[2])

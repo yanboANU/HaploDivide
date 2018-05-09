@@ -1,39 +1,50 @@
 import sys
 import read
-  
+import tools  
 
 if __name__ == "__main__":
 
-    #filter_SAM(sys.argv[1], sys.argv[2])
-    #/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/scaffols.ref.sam
     #/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/mutation_record
-    #/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/haplo/after_filter/contig_1_snp_mutation
-    #align = deal_sam.get_align_pos(sys.argv[1]) # bwa mem result
-    # position in ref
-    real_snp_pos = read.read_mutation_list(sys.argv[1])
-    pre_snp_pos = read.read_mutation_list(sys.argv[2])
+    #*snp_mutation
+    #*phasing_result
+    real_snpPosition, real_snpContent = read.read_snp(sys.argv[1])
+    pre_snpPosition, pre_snpContent = read.read_snp(sys.argv[2])
 
+    print ("number of real snp:", len(real_snpPosition))
+    print ("number of pre snp:", len(pre_snpPosition))
+    
+    TP =  sorted(pre_snpPosition.intersection(real_snpPosition))
 
-    print ("number of real snp:", len(real_snp_pos))
-    print ("number of pre snp:", len(pre_snp_pos))
-    '''
-    #position in contig
-    (name, contig_snp_position) = read_snp_mutation(sys.argv[3])  
+    print ("TP number:", len(TP))
+    print ("FP number:", len(pre_snpPosition - real_snpPosition))
+    print ("FP:", sorted(pre_snpPosition - real_snpPosition))
+    print ("TN number:", len(real_snpPosition - pre_snpPosition))
+    print ("TN:", sorted(real_snpPosition - pre_snpPosition))
+  
+    phasingHaplo = read.read_phasing_result(sys.argv[3])
  
-    #convert contig pos to ref pos
-    ref_snp_position, not_find = convert(align, name, contig_snp_position)
-    '''
-    #print (set(ref_snp_position).intersection(set(real_snp_position)))  
+    phasingHaploTP = "" 
+    for cc in TP:
+        if cc not in phasingHaplo:
+            #print cc
+            continue
+        phasingHaploTP = phasingHaploTP + phasingHaplo[cc]
+
+    refHaploTP = ""
+    for cc in TP:
+        if cc not in phasingHaplo:
+            #print cc
+            continue
+        if (real_snpContent[cc][0] == pre_snpContent[cc][0]): 
+        #or real_snpContent[cc][0] == reverseNucleotide(pre_snpContent[cc][1])):
+            refHaploTP = refHaploTP + "0"
+        elif (real_snpContent[cc][0] == pre_snpContent[cc][1]):
+        #or real_snpContent[cc][0] == reverseNucleotide(pre_snpContent[cc][0])):
+            refHaploTP = refHaploTP + "1"
+        else:
+            refHaploTP = refHaploTP + "2"
+    print (len(TP),len(phasingHaploTP),len(refHaploTP))
+    print (phasingHaploTP)
+    print (refHaploTP)
  
-    print ("TP number:", len(set(pre_snp_pos).intersection(set(real_snp_pos))))
-
-    print ("FP number:", len(set(pre_snp_pos) - set(real_snp_pos)))
-
-    print ("FP:", sorted(set(pre_snp_pos) - set(real_snp_pos)))
-
-    print ("TN number:", len(set(real_snp_pos)- set(pre_snp_pos)))
-
-    print ("TN:", sorted(set(real_snp_pos)- set(pre_snp_pos)))
-
-
-
+    print (tools.hamming_Distance(refHaploTP, phasingHaploTP))
