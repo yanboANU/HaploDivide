@@ -41,6 +41,21 @@ def random_string(l):
         ans = ans + alphabet[pos] 
     return ans
 
+def Indel_point_length(subS):
+    ll = [100, 200, 400, 800, 1600, 3200]
+
+    InLabel = random.randint(0,1)
+    length = len(ll)
+    if InLabel == 1:
+       InLen = random.randint(1,length)
+       return random_string(ll[InLen]) + subS
+    else:
+       DelLen = random.randint(1,length)
+       #print "delete ", DelLen 
+       return subS[ ll[DelLen]:]   
+
+
+#Indel length random(1, longestIndel)
 def Indel(subS):
     length = len(subS) 
     InLabel = random.randint(0,1)
@@ -100,7 +115,8 @@ def mutate(genome, mutationRate, SNPRate, longestIndel):
         pos = random.randint(0, len(genome)-1)
         while pos in indels:
             pos = random.randint(0, len(genome)-1)
-        indel_c = Indel(genome[pos:pos+longestIndel]) 
+        #indel_c = Indel(genome[pos:pos+longestIndel]) # indel random [1, longestLen]
+        indel_c = Indel_point_length(genome[pos:pos+longestIndel]) #
         chromatid = genome[:pos] + indel_c + genome[pos+longestIndel:]
         indels[pos] = (genome[pos:pos+longestIndel],indel_c)  
        
