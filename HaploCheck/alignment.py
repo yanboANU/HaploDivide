@@ -8,13 +8,11 @@ import collections
 import sequence
 
 class Alignment(object):
-    def __init__(self, left, right, align, leftDir, rightDir):
+    def __init__(self, left, right, align):
         self._left = left    # Sequence, align seq (include '-')
         self._right = right  # Sequence
         self._align = align  # ||| ***
         self._score = [0, 0, 0, 0, 0, 0] 
-        self._left_dir = leftDir
-        self._right_dir = rightDir 
         # socre1, matchNum, insertNum, delNum, gapNum, score2
  
     def _write_score(self, f):
@@ -42,11 +40,27 @@ class Alignment(object):
         print "in align postion: ", s, s+l
         l = min(l, len(self._align)-s) 
         print self._left._seq_pos[s:s+l]  # left seq pos  
-        self._left.print_seq_part(s,l)
+        self._left._print_seq_part(s,l)
         print self._align[s:s+l]
-        self._right.print_seq_part(s,l)
+        self._right._print_seq_part(s,l)
         print self._right._seq_pos[s:s+l]  # right seq pos
         return
+    
+    def _generate_pos_to_pos(self):
+        leftToRight = {}
+        rightToLeft = {}
+        for i in range(len(self._align)):
+            l = self._left._seq_pos[i]
+            r = self._right._seq_pos[i]
+            #print l, r 
+            if l != -1 and r != -1:
+                leftToRight[l] = r
+                rightToLeft[r] = l
+        #print leftToRight
+        #print rightToLeft
+        return leftToRight, rightToLeft
+
+
  
     '''
     def getAlignDiffStat(self, mergeLen):
@@ -240,7 +254,7 @@ def giveCheckPos(align, mergeLen):
     return checkRange  
        
 
-
+'''
 def read_blasr_m5(fileName):
 
     f = open(fileName,"r")
@@ -262,7 +276,7 @@ def read_blasr_m5(fileName):
     target = Sequence(targetName, targetLen, targetS, targetE, targetSeq, targetDirection)
     alignObj = Alignment(query, target, align, queryDirection, targetDirection)  
     return alignObj
- 
+''' 
 
 
 if __name__ == "__main__":

@@ -7,6 +7,8 @@ if __name__ == "__main__":
     #/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/mutation_record
     #*snp_mutation
     #*phasing_result
+
+    # function: calc TP 
     real_snpPosition, real_snpContent = read.read_snp(sys.argv[1])
     pre_snpPosition, pre_snpContent = read.read_snp(sys.argv[2])
 
@@ -21,6 +23,7 @@ if __name__ == "__main__":
     print ("TN number:", len(real_snpPosition - pre_snpPosition))
     print ("TN:", sorted(real_snpPosition - pre_snpPosition))
   
+    # function: calc switch number
     phasingHaplo = read.read_phasing_result(sys.argv[3])
  
     phasingHaploTP = "" 

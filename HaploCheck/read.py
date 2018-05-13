@@ -1,5 +1,9 @@
 import sys
-
+import sequence
+import alignment
+from itertools import ifilter,imap
+import collections
+import string
 
 
 def read_align(filename):
@@ -45,11 +49,11 @@ def read_snp(filename):
     for line in f:  
         words = line.strip().split()
         if len(words) == 5: #for file contig_snp_mutation
-            snpPosition.add(words[0]) 
-            snpContent[words[0]] = (words[1], words[3])
+            snpPosition.add(int(words[0])) 
+            snpContent[int(words[0])] = (words[1], words[3])
         if len(words) == 3: #for file mutation record
-            snpPosition.add(words[0]) 
-            snpContent[words[0]] = (words[1], words[2])
+            snpPosition.add(int(words[0]))
+            snpContent[int(words[0])] = (words[1], words[2])
 
     return snpPosition, snpContent
 
@@ -75,6 +79,27 @@ def read_phasing_result(filename):
     return haplotype
  
 
+def read_blasr_m5(fileName):
+
+    f = open(fileName,"r")
+    for line in ifilter(lambda x: len(x) > 0, imap(string.strip, f)):
+        words = line.split()
+
+        #print words[:4] 
+        queryName, queryLen, queryS, queryE = words[:4]
+        queryDirection = words[4]
+        targetName, targetLen, targetS, targetE = words[5:5+4]
+        targetDirection = words[9] 
+ 
+        querySeq = words[-3]   # ATCG-
+        align = words[-2]      # |,*
+        targetSeq = words[-1]  # ATCG-    
+ 
+    f.close()
+    query = sequence.Sequence(queryName, queryLen, queryS, queryE, querySeq, queryDirection) 
+    target = sequence.Sequence(targetName, targetLen, targetS, targetE, targetSeq, targetDirection)
+    alignObj = alignment.Alignment(query, target, align)  
+    return alignObj
 
 '''
 def read_columns(filename):

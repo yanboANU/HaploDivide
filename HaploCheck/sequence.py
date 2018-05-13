@@ -44,7 +44,7 @@ class Sequence(object):
                     self._seq_pos.append(-1)
 
     def _print_seq_part(self,start,ll):
-        print self._seq[start:start+ll] 
+        print (self._seq[start:start+ll])
 
     def _write_name(self, f):
         f.write("%s %s %s %s"  % (self._name, self._length, self._s, self._e))

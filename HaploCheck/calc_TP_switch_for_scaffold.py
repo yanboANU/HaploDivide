@@ -1,7 +1,7 @@
-import deal_sam
+#import deal_sam
 import sys
+import tools
 import read
-#import ../calc_swith
 
 def read_align(filename):
     f = open(filename, "r")
@@ -124,49 +124,54 @@ def convert_reverse(align, name, pos):
 
 if __name__ == "__main__":
 
-    #filter_SAM(sys.argv[1], sys.argv[2])
-    #/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/scaffols.ref.sam
-    #/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/mutation_record
-    #/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/haplo/after_filter/contig_1_snp_mutation
-    #align = deal_sam.get_align_pos(sys.argv[1]) # bwa mem result
     
 
     #before run this script
     #step1: blasr: scaffold.fasta ref.fasta 
-    #step2: input: blasr result, output:  align_pos(calc_switch)
+    
     if len(sys.argv) < 4:
-        print ("python " + sys.argv[0] + " /media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/align_pos  /media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/mutation_record /media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/haplo/after_filter/contig_1_snp_mutation")
+        print ("python " + sys.argv[0] + "(1)/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/mutation_record (2)/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/haplo/after_filter/contig_1_snp_mutation (3)scaffold_ref.blasr.m5")
         sys.exit()
 
-    align = read_align(sys.argv[1]) # blasr result
     # pos in ref
-    real_snp_pos = read_mutation_record(sys.argv[2])
-
-    #pos in contig
-    (name, contig_snp_pos) = read_snp_mutation(sys.argv[3])  
- 
-    #convert contie pos to ref pos
-    ref_snp_pos, not_find = convert(align, name, contig_snp_pos)
+    real_snpPosition, real_snpContent = read.read_snp(sys.argv[1])
     
-    #print (set(ref_snp_pos).intersection(set(real_snp_position)))  
+    #pos in contig
+    pre_snpPosition, pre_snpContent = read.read_snp(sys.argv[2])
+
+    alignScaffoldRef = read.read_blasr_m5(sys.argv[3])
+
+    print ("number of real snp:", len(real_snpPosition))
+    print ("number of pre snp:", len(pre_snpPosition))
+    
+    alignScaffoldRef._left._generate_seq_pos() # real
+    alignScaffoldRef._right._generate_seq_pos()# pre    
+
+    alignScaffoldRef._print_align_part(80,90)
+
+    leftToRight, rightToLeft = alignScaffoldRef._generate_pos_to_pos()
+
+    #convert contie pos to ref pos
+    #print rightToLeft
+    #print pre_snpPosition
+
+    left_snpPosition, not_find = tools.convert(rightToLeft, pre_snpPosition) 
+    print len(set(left_snpPosition).intersection(real_snpPosition))
+    print len(not_find)
+
+
+    right_snpPosition, not_find = tools.convert(leftToRight, real_snpPosition) 
+    print len(set(right_snpPosition).intersection(pre_snpPosition))
+    print len(not_find)
+
+
+    print ("FP number:", len(set(left_snpPosition) - real_snpPosition))
+    print ("TN number:", len(real_snpPosition - set(left_snpPosition)))
+  
  
-    print ("number of real snp:", len(real_snp_pos))
-    print ("number of pre snp:", len(ref_snp_pos))
+    #sys.exit() 
 
     '''
-    TP  =  set(ref_snp_pos).intersection(set(real_snp_pos))
-
-    print ("TP number:", len(TP))
-    print ("not found number:", len(not_find))
-
-    fout = open("TP_in_reference", "w")
-    for cc in sorted(TP):
-        fout.write("%s " % (cc))
-    fout.close()
-
-    #TP_in_contig, nf = convert_reverse(align, name, TP)
-    '''
-
     TP_in_contig_from_real, nf = convert_reverse(align, name, real_snp_pos)
 
     TP_in_contig = set(contig_snp_pos).intersection(set(TP_in_contig_from_real))
@@ -188,14 +193,8 @@ if __name__ == "__main__":
     for cc in sorted(TP):
         fout.write("%s " % (cc))
     fout.close() 
+    ''' 
 
 
-    print ("FP number:", len(set(ref_snp_pos) - set(real_snp_pos)))
-
-    #print ("FP:", sorted(set(ref_snp_pos) - set(real_snp_pos)))
-
-    print ("TN number:", len(set(real_snp_pos)- set(ref_snp_pos)))
-
-    #print ("TN:", sorted(set(real_snp_pos)- set(ref_snp_pos)))
 
 

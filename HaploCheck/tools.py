@@ -2,7 +2,7 @@
 
 import sys
 import os
-import pysam
+#import pysam
 import string
 import copy
 
@@ -29,6 +29,17 @@ def sorted_Map_Value_Len(m, R=True):
     #for k, v in [(k, m[k]) for k in sorted(m, key=m.get, reverse=R)]:
     #    sortedM.append((k,m[k]))  
     return sortedM
+
+def convert(lToR, left):
+    right = []
+    not_find = [] 
+    for ll in left:
+        if ll in lToR:
+           right.append(lToR[ll])
+        else:
+           not_find.append(ll)
+    return right, not_find
+
 
 
 
