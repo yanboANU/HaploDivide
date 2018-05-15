@@ -40,7 +40,7 @@ if __name__ == "__main__":
     alignScaffoldRef._left._generate_seq_pos() # real
     alignScaffoldRef._right._generate_seq_pos()# pre    
 
-    alignScaffoldRef._print_align_part(1530113,90)
+    #alignScaffoldRef._print_align_part(1530113,90)
 
     leftToRight, rightToLeft = alignScaffoldRef._generate_pos_to_pos()
 
@@ -50,15 +50,15 @@ if __name__ == "__main__":
 
     left_snpPosition, not_find = tools.convert(rightToLeft, pre_snpPosition)
     TPInRef = set(left_snpPosition).intersection(real_snpPosition)
-    print len(TPInRef)
-    print len(not_find)
+    print ("2 ways to calulate TP")
+    print ("one way map scaffold snp to reference snp, get intersection and TP number is ",len(TPInRef))
+    print ("the number of scaffold position cannot find corresponding reference position",len(not_find))
 
 
     right_snpPosition, not_find = tools.convert(leftToRight, real_snpPosition) 
     TPInContig = sorted(set(right_snpPosition).intersection(pre_snpPosition))
-    print len(TPInContig)
-    print len(not_find)
-
+    print ("second way map reference snp to scaffold snp, get intersection and TP number is ",len(TPInContig))
+    print ("the number of scaffold position cannot find corresponding reference position",len(not_find))
 
 
 
@@ -85,11 +85,11 @@ if __name__ == "__main__":
                 #print cc
                 continue
             phasingHaploTP = phasingHaploTP + phasingHaplo[cc]
-            
+            '''
             print ("posision in contig %s position in reference %s" % (cc, rightToLeft[cc]))
             print ("content in contig " , pre_snpContent[cc])
             print ("content in reference " , real_snpContent[ rightToLeft[cc] ])
-            ''' 
+             
             if pre_snpContent[cc] != real_snpContent[ rightToLeft[cc] ]:
                 print ("contig position %s content %s" % ( cc, pre_snpContent[cc]))
                 print ("reference position %s content %s" % (rightToLeft[cc], real_snpContent[ rightToLeft[cc] ]))
@@ -115,10 +115,10 @@ if __name__ == "__main__":
             else:
                 refHaploTP2 = refHaploTP2 + "2"
 
-        print (len(TPInContig),len(phasingHaploTP),len(refHaploTP))
-        print (phasingHaploTP)
-        print (refHaploTP)
-        print (refHaploTP2)
+        print ("The length of following three sequence:", len(phasingHaploTP),len(refHaploTP),len(refHaploTP))
+        print ("pre :",phasingHaploTP)
+        print ("ref1:",refHaploTP)
+        print ("ref2:",refHaploTP2)
 
         print (tools.hamming_Distance(refHaploTP, phasingHaploTP))
 
