@@ -63,20 +63,27 @@ def read_phasing_result(filename):
     #unfinish only read one segment
     ##########
     f = open(filename, "r")
-    haplotype = {} 
+    haplos = [] 
     lineNumber = 0
     for line in f:
+        haplotype = {}
         lineNumber += 1
-        if lineNumber == 6:  
+        if lineNumber % 6 == 0: 
             words = line.strip().split(',')
-        if lineNumber == 7:
+            #print (words)
+            #print (len(words))    
+            continue
+        elif lineNumber % 6 == 1 and lineNumber >1:
             binarySeq = line.strip()
-    print (len(binarySeq))
-    print (len(words))
-    assert len(binarySeq) == len(words)
-    for i in range(len(words)):
-        haplotype[words[i]] = binarySeq[i] 
-    return haplotype
+        else:
+            continue 
+        #print ("len binnary",len(binarySeq))
+        #print ("len position",len(words))
+        assert len(binarySeq) == len(words)
+        for i in range(len(words)):
+            haplotype[int(words[i])] = binarySeq[i] 
+        haplos.append(haplotype) 
+    return haplos
  
 
 def read_blasr_m5(fileName):
