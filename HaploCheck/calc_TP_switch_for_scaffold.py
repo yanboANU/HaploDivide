@@ -40,7 +40,7 @@ if __name__ == "__main__":
     alignScaffoldRef._left._generate_seq_pos() # real
     alignScaffoldRef._right._generate_seq_pos()# pre    
 
-    alignScaffoldRef._print_align_part(80,90)
+    alignScaffoldRef._print_align_part(1530113,90)
 
     leftToRight, rightToLeft = alignScaffoldRef._generate_pos_to_pos()
 
@@ -69,42 +69,60 @@ if __name__ == "__main__":
     #sys.exit() 
 
 
-    phasingHaplo = read.read_phasing_result(sys.argv[4])
+    Haplos = read.read_phasing_result(sys.argv[4])
+    for phasingHaplo in Haplos: 
+        phasingHaploTP = ""  
+        refHaploTP = ""
+        refHaploTP2 = "" 
+        for cc in TPInContig:
+            '''
+            print cc
+            print phasingHaplo
+            print rightToLeft
+            sys.exit()    
+            '''
+            if (cc not in phasingHaplo) or (cc not in rightToLeft):
+                #print cc
+                continue
+            phasingHaploTP = phasingHaploTP + phasingHaplo[cc]
+            
+            print ("posision in contig %s position in reference %s" % (cc, rightToLeft[cc]))
+            print ("content in contig " , pre_snpContent[cc])
+            print ("content in reference " , real_snpContent[ rightToLeft[cc] ])
+            ''' 
+            if pre_snpContent[cc] != real_snpContent[ rightToLeft[cc] ]:
+                print ("contig position %s content %s" % ( cc, pre_snpContent[cc]))
+                print ("reference position %s content %s" % (rightToLeft[cc], real_snpContent[ rightToLeft[cc] ]))
+            else:
+                print ("equal")
+                print ("contig position %s content %s" % ( cc, pre_snpContent[cc]))
+                print ("reference position %s content %s" % (rightToLeft[cc], real_snpContent[ rightToLeft[cc] ]))
+            '''
+            if (real_snpContent[ rightToLeft[cc] ][0] == pre_snpContent[cc][0]):  
+                #or real_snpContent[ rightToLeft[cc] ][0] == reverseNucleotide(pre_snpContent[cc][1])):
+                refHaploTP = refHaploTP + "0"
+            elif (real_snpContent[ rightToLeft[cc] ][0] == pre_snpContent[cc][1]):
+                #or real_snpContent[ rightToLeft[cc] ][0] == reverseNucleotide(pre_snpContent[cc][0])):
+                refHaploTP = refHaploTP + "1"
+            else:
+                refHaploTP = refHaploTP + "2"
 
-    phasingHaploTP = ""  
-    refHaploTP = ""
-    for cc in TPInContig:
-        '''
-        print cc
-        print phasingHaplo
-        print rightToLeft
-        sys.exit()    
-        '''
-        if (cc not in phasingHaplo) or (cc not in rightToLeft):
-            #print cc
-            continue
-        phasingHaploTP = phasingHaploTP + phasingHaplo[cc]
-        '''
-        print ("posision in contig %s position in reference %s" % (cc, rightToLeft[cc]))
-        print ("content in contig " , pre_snpContent[cc])
-        print ("content in reference " , real_snpContent[ rightToLeft[cc] ])
-        '''
-        if pre_snpContent[cc] != real_snpContent[ rightToLeft[cc] ]:
-            print ("contig position %s content %s" % ( cc, pre_snpContent[cc]))
-            print ("reference position %s content %s" % (rightToLeft[cc], real_snpContent[ rightToLeft[cc] ]))
-        if (real_snpContent[ rightToLeft[cc] ][0] == pre_snpContent[cc][0]):  
-            #or real_snpContent[ rightToLeft[cc] ][0] == reverseNucleotide(pre_snpContent[cc][1])):
-            refHaploTP = refHaploTP + "0"
-        elif (real_snpContent[ rightToLeft[cc] ][0] == pre_snpContent[cc][1]):
-            #or real_snpContent[ rightToLeft[cc] ][0] == reverseNucleotide(pre_snpContent[cc][0])):
-            refHaploTP = refHaploTP + "1"
-        else:
-            refHaploTP = refHaploTP + "2"
 
-    print (len(TPInContig),len(phasingHaploTP),len(refHaploTP))
-    print (phasingHaploTP)
-    print (refHaploTP)
- 
-    print (tools.hamming_Distance(refHaploTP, phasingHaploTP))
+            if (real_snpContent[ rightToLeft[cc] ][0] == reverseNucleotide(pre_snpContent[cc][1])):
+                refHaploTP2 = refHaploTP2 + "0"
+            elif (real_snpContent[ rightToLeft[cc] ][0] == reverseNucleotide(pre_snpContent[cc][0])):
+                refHaploTP2 = refHaploTP2 + "1"
+            else:
+                refHaploTP2 = refHaploTP2 + "2"
+
+        print (len(TPInContig),len(phasingHaploTP),len(refHaploTP))
+        print (phasingHaploTP)
+        print (refHaploTP)
+        print (refHaploTP2)
+
+        print (tools.hamming_Distance(refHaploTP, phasingHaploTP))
+
+        print (tools.hamming_Distance(refHaploTP2, phasingHaploTP))
+
 
 
