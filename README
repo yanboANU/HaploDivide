@@ -1,5 +1,28 @@
-(1) BAM
-(2) PreProcess: remove some alignment, move gap to right
-nohup python3 /home/yulin/liyanbo/script/HaploDivide/PreProcessSortedBam.py aten.sorted.bam one_contig.fasta >pre.log &
+Whole phasing process:
+(1) step 1: using flye assemble
+(2) step 2: using bwa do alignment
+bwa index 
+bwa mem 
+
+(3) step 3: filter some alignments
+python /home/yulin/liyanbo/script/HaploDivide/read_sam.py homo19.mem.sam 1_filter.sam 
  
-(3) sort BAM
+(4) step 4: samtools
+samtools view -@ 30 -S -b 1_filter.sam >1_filter.bam
+samtools sort -@ 30 1_filter.bam -o 1_filter.sorted.bam
+samtools index -@ 30 1_filter.sorted.bam
+
+(5) step 5: filter some alignments again
+python3 /home/yulin/liyanbo/script/HaploDivide/filter_bam.py ../1_filter.sorted.bam
+
+(6) step 6: samtools
+samtools index -@ 30 2_filter.bam
+
+(7) step 7: phasing
+python3 /home/yulin/liyanbo/script/HaploDivide/version2/main.py 2_filter.bam reference.fasta/scaffolds.fasta
+
+Some code for check(in HaploCheck):
+(1) check_phasing.py: for simulate data, check reads divide correctly or not
+(2) calc_TP_switch_for_ref.py: for simulate data and phasing on reference, calculate the TP, TN and FP of snp and switch number
+(3) calc_TP_switch_for_scaffold.py: for simulate data and phasing on scaffolds, calculate the TP, TN and FP of snp and switch number
+
