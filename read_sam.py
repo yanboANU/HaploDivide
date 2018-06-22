@@ -18,8 +18,10 @@ def filter_SAM(filename, fileout):
             words = line.split()
             if words[1] == "0" or words[1] == "16":
                 fout.write(line)
-        else:
+        elif line.startswith("@"):    
             fout.write(line)
+        else:
+            continue
     f.close()
     fout.close()
 

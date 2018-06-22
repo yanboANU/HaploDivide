@@ -4,8 +4,8 @@ import os, sys
 
 #command1 = "flye --genome-size 1.5m --threads 8 --out-dir flye --pacbio-raw"
 currentPath = "/home/yulin/liyanbo/Project/A_ten/flye/phasing/one_contig " 
-command2 = "bwa index contig.fasta " # scaffolds.fasta"
-command3 = "bwa mem -t 30 contig.fasta /home/yulin/bio/pacbio_aten/newId/Long5k/Long5k_reads.fata >  coral.mem.sam"
+command2 = "bwa index  " + sys.argv[1] # scaffolds.fasta"
+command3 = "bwa mem -t 30 " + sys.argv[1] + " /home/yulin/bio/pacbio_aten/newId/Long5k/Long5k_reads.fasta >  coral.mem.sam"
 command4 = "python /home/yulin/liyanbo/script/HaploDivide/read_sam.py coral.mem.sam 1_filter.sam"
 command5 = "samtools view -@ 30 -S -b 1_filter.sam >1_filter.bam"
 
@@ -14,7 +14,7 @@ command6 = "samtools sort -@ 30 1_filter.bam -o 1_filter.sorted.bam"
 command7 = "samtools index -@ 30 1_filter.sorted.bam"
 command8 = "python3 /home/yulin/liyanbo/script/HaploDivide/filter_bam.py ../1_filter.sorted.bam"
 command9 = "samtools index -@ 30 2_filter.bam"
-command10 = "python3 /home/yulin/liyanbo/script/HaploDivide/version2/main.py 2_filter.bam ../../contig.fasta >log"
+command10 = "python3 /home/yulin/liyanbo/script/HaploDivide/version2/main.py 2_filter.bam ../" + sys.argv[1] +  " >log"
 
 
 for k in range(1,2):
@@ -29,12 +29,9 @@ for k in range(1,2):
     ''' 
     os.system("pwd")    
     os.system(command2)
-    os.system("mkdir haplo")
-    os.chdir("haplo")
      
-    os.system("pwd")    
-    print (command3 + "../../read_m" + str(k) + "_ref.fastq > yeast.mem.sam")
-    os.system(command3 + "../../read_m" + str(k) + "_ref.fastq > yeast.mem.sam")
+    print (command3)
+    os.system(command3)
 
     os.system(command4) 
     os.system(command5)
@@ -52,5 +49,4 @@ for k in range(1,2):
     os.system(command9)
 
     os.system(command10)
-    os.chdir("/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast")
      

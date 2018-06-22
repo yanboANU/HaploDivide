@@ -385,9 +385,10 @@ class Phasing:
         phase0 = set()
         phase1 = set() 
         readsLabel = self._label_reads()
-        self._coverage = (len(self._snp) - window)*[0]
+        self._coverage = (len(self._snp) - window + 1)*[0]
         position = []
-        for i in range(len(self._snp)-window):
+        print ("check  check")
+        for i in range(len(self._snp) - window + 1):
             phases = {}
             for (read, label) in readsLabel.items():
                 f = ''.join( str(j) for j in label[ i :i+window] )
@@ -405,21 +406,7 @@ class Phasing:
                     #cov += len(reads)
                     self._coverage[i] += len(reads)  
                     allCoverPhases.append((label, len(reads)))
-            '''
-            if len(allCoverPhases) == 1:
-                print ("waiting dealing")
-                if len(position) > 0:
-                    self._label0s.append(label0)
-                    self._label1s.append(label1)
-                    self._phase0s.append(phase0) 
-                    self._phase1s.append(phase1) 
-                    self._positions.append(position) 
-                label0 = ""
-                label1 = ""
-                phase0 = []
-                phase1 = [] 
-                position = []
-            '''
+            
             if ( len(allCoverPhases)>=2 and allCoverPhases[0][1] > cov * 0.2 and allCoverPhases[1][1] > cov * 0.2
                and tools.is_Bool_Reverse(allCoverPhases[0][0], allCoverPhases[1][0]) and 
                  (len(label0) == 0 or label0[-2:] == allCoverPhases[0][0][:2] or label0[-2:] == allCoverPhases[1][0][:2] ) ):
@@ -433,19 +420,6 @@ class Phasing:
  
                 print ("before update ",len(phase0), len(phase1) )
                 self._update(label0, label1, phase0, phase1, readsLabel, position)                
-                '''
-                if len(position) > 0:
-
-                    unphased = phase0.intersection(phase1)     
-                    #print ("intersection:", unphased)
-                    if len( unphased ) > 0:
-                        self._re_phasing(unphased, label0, label1, phase0, phase1, readsLabel, position)
-                    self._label0s.append(label0)
-                    self._label1s.append(label1)
-                    self._phase0s.append(phase0) 
-                    self._phase1s.append(phase1)
-                    self._positions.append(position) 
-                '''
                 #unphased = phase0.intersection(phase1)     
                 #print ("after re_phasing intersection:", unphased)
                 
@@ -463,21 +437,6 @@ class Phasing:
                 #sys.exit()
 
         self._update(label0, label1, phase0, phase1, readsLabel, position)                
-        '''
-        if len(position) > 0:
-
-            unphased = phase0.intersection(phase1)     
-                #print ("intersection:", unphased)
-            if len( unphased ) > 0:
-                self._re_phasing(unphased, label0, label1, phase0, phase1, readsLabel, position)
-            self._label0s.append(label0)
-            self._label1s.append(label1)
-            self._phase0s.append(phase0) 
-            self._phase1s.append(phase1)
-            self._positions.append(position) 
-        '''
-
-
 
 
     def _cover_ratio_check(self, label0, label1, phase0, phase1, position, readsLabel):
@@ -570,7 +529,7 @@ class Phasing:
             label0 = allCoverPhases[0][0]
             label1 = allCoverPhases[1][0] 
         else:
-            
+            # check sufix == prefix 
             assert ( label0[-2:] == allCoverPhases[0][0][:2] or  
                    label0[-2:] == allCoverPhases[1][0][:2] )
               

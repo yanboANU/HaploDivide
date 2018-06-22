@@ -5,19 +5,19 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import re
+import sys
 
 
-
-record = SeqIO.read(open("sequence.fasta"), "fasta")
+record = SeqIO.read(open(sys.argv[1]), "fasta")
  
 print record.id
 
 seq2 = re.sub('[NMR]', '', str(record.seq))
 
-print collections.Counter(seq2)
-rec2 = SeqRecord(Seq(seq2[0:10000000]),id=record.id)
+#print collections.Counter(seq2)
+rec2 = SeqRecord(Seq(seq2),id=record.id)
 
-SeqIO.write(rec2,'N_removed_first_10M.fasta','fasta') 
+SeqIO.write(rec2,'N_removed_chr19.fasta','fasta') 
 
 
 

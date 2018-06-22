@@ -77,8 +77,8 @@ def read_phasing_result(filename):
             binarySeq = line.strip()
         else:
             continue 
-        #print ("len binnary",len(binarySeq))
-        #print ("len position",len(words))
+        print ("len binnary",len(binarySeq))
+        print ("len position",len(words))
         assert len(binarySeq) == len(words)
         for i in range(len(words)):
             haplotype[int(words[i])] = binarySeq[i] 
@@ -105,7 +105,9 @@ def read_blasr_m5(fileName):
     f.close()
     query = sequence.Sequence(queryName, queryLen, queryS, queryE, querySeq, queryDirection) 
     target = sequence.Sequence(targetName, targetLen, targetS, targetE, targetSeq, targetDirection)
-    alignObj = alignment.Alignment(query, target, align)  
+    alignObj = alignment.Alignment(query, target, align)  # blasr first reference, second contig
+
+    #alignObj = alignment.Alignment(target, query, align)  # blasr first contig, second reference
     return alignObj
 
 '''

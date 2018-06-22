@@ -14,7 +14,7 @@ class Column:
     # nucleotide: in reference
     # mapContent is a map 'A': support read list
     
-    def __init__(self, refPos):
+    def __init__(self, refPos, a1=0.7, a2=0.3):
         self._ref_pos = refPos
 
         self._map_content = {}
@@ -26,6 +26,8 @@ class Column:
         self._is_mutation = -1
         self._is_delete = -1
         self._is_stable = -1    
+        self._a1 = a1
+        self._a2 = a2
         #self.best_Content =
         #self.second_Content =
    
@@ -63,11 +65,11 @@ class Column:
         if self._cov <= 10:
             return       
 
-        if len(s[0][1]) >= self._cov*0.7 and s[0][0] != self._nucleotide:
+        if len(s[0][1]) >= self._cov*self._a1 and s[0][0] != self._nucleotide:
             print ("reference position %s wrong" % (self._ref_pos))
             #sys.exit("0.7 cov different from ref")
         
-        if len(s[0][1]) < self._cov*0.7 and len(s[1][1]) >= self._cov*0.3:
+        if len(s[0][1]) < self._cov*self._a1 and len(s[1][1]) >= self._cov*self._a2:
             
             #print ("enter 1")
             if s[0][0] == '*' or s[1][0] == '*':
@@ -93,7 +95,7 @@ class Column:
             self._is_stable = 0 
         #print (self._is_insert, self._is_mutation, self._is_delete, self._is_stable)    
 
-def init_Columns(bamfile, contig):
+def init_Columns(bamfile, contig, a1=0.7, a2=0.3):
     
     columns = {}
     for read in bamfile.fetch(contig._name):
@@ -117,7 +119,7 @@ def init_Columns(bamfile, contig):
             # get columns(align info)
             if type(referPos) == int:
                 if referPos not in columns:
-                    columns[referPos] = Column(referPos)
+                    columns[referPos] = Column(referPos, a1, a2)
                 columns[referPos]._cov += 1
                 columns[referPos]._nucleotide = contig._seq[referPos]
                 if type(readPos) == int:

@@ -20,7 +20,7 @@ if __name__ == "__main__":
     
 
     #before run this script
-    #step1: blasr: scaffold.fasta ref.fasta 
+    #step1: blasr:  ref.fasta  scaffold.fasta
     
     if len(sys.argv) < 4:
         print ("python " + sys.argv[0] + "(1)/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/mutation_record (2)/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/haplo/after_filter/contig_1_snp_mutation (3)scaffold_ref.blasr.m5 (4)*phasing_result")
@@ -120,9 +120,9 @@ if __name__ == "__main__":
         print ("ref1:",refHaploTP)
         print ("ref2:",refHaploTP2)
 
-        print (tools.hamming_Distance(refHaploTP, phasingHaploTP))
+        print ("pre distance ref1",tools.hamming_Distance(refHaploTP, phasingHaploTP))
 
-        print (tools.hamming_Distance(refHaploTP2, phasingHaploTP))
+        print ("pre distance ref2",tools.hamming_Distance(refHaploTP2, phasingHaploTP))
 
 
 

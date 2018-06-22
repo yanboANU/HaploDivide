@@ -23,6 +23,8 @@ python3 /home/yulin/liyanbo/script/HaploDivide/version2/main.py 2_filter.bam ref
 
 Some code for check(in HaploCheck):
 (1) check_phasing.py: for simulate data, check reads divide correctly or not
+
 (2) calc_TP_switch_for_ref.py: for simulate data and phasing on reference, calculate the TP, TN and FP of snp and switch number
+
 (3) calc_TP_switch_for_scaffold.py: for simulate data and phasing on scaffolds, calculate the TP, TN and FP of snp and switch number
 

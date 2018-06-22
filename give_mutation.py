@@ -42,15 +42,15 @@ def random_string(l):
     return ans
 
 def Indel_point_length(subS):
-    ll = [100, 200, 400, 800, 1600, 3200]
-
+    #ll = [100, 100, 100, 200, 200, 200, 400, 800, 1600, 3200]
+    ll = [25600]
     InLabel = random.randint(0,1)
     length = len(ll)
     if InLabel == 1:
-       InLen = random.randint(1,length)
+       InLen = random.randint(0,length-1)
        return random_string(ll[InLen]) + subS
     else:
-       DelLen = random.randint(1,length)
+       DelLen = random.randint(0,length-1)
        #print "delete ", DelLen 
        return subS[ ll[DelLen]:]   
 
@@ -84,10 +84,10 @@ def mutate(genome, mutationRate, SNPRate, longestIndel):
     #SNPNumber = 2
     
     chromatid = genome
-    #print "fist genome: ", genome
+    print "SNP number: ", SNPNumber
     mutations = {}
     for i in range(SNPNumber):       #[0,SNPNumber) 
-        #print "mutation number: ", i
+        print "mutation number: ", i
         if i != 0:
             genome = chromatid
         pos = random.randint(0, len(genome)-1)  #index [0, len(genome)-1] 
@@ -108,6 +108,7 @@ def mutate(genome, mutationRate, SNPRate, longestIndel):
     IndelNumber = int(len(genome)*mutationRate*(1-SNPRate))
     #IndelNumber = 2
 
+    print "Indel number: ", IndelNumber
     indels = {}
     for i in range(IndelNumber):
         if i != 0:
@@ -134,6 +135,8 @@ def mutate(genome, mutationRate, SNPRate, longestIndel):
         fout1.write("%s %s %s\n" % (c[0], c[1][0], c[1][1]) )
        
     for c in sorted_i:
+
+        fout2.write("insert length %s\n" % (len(c[1][1]) - len(c[1][0])) ) 
         fout2.write("%s %s %s\n" % (c[0], c[1][0], c[1][1]) ) 
     return chromatid 
 
@@ -145,6 +148,7 @@ if __name__ == "__main__":
 #two kind mutation: SNP and small indel
 #parameter include: (1),mutation rate(1%-5%) (2),SNP rate (3), longest indel
 
+    print "Usage: python give_mutation.py", sys.argv[1], sys.argv[2], sys.argv[3]
     fpara = open(sys.argv[3], 'r')
     inputFileName = sys.argv[1]
     outputFileName = sys.argv[2]
@@ -158,7 +162,11 @@ if __name__ == "__main__":
             if len(genome) != 0:
 		print "genome name:", name
 		print "genome length:", len(genome)
+                # origal genome      
+	        fOut.write(name +"\n")
+	        fOut.write(genome + "\n")
                 chromatid = mutate(genome, mutationRate, SNPRate, longestIndel)
+                print "mutate genome length:", len(chromatid)
                 nameA = name.split("_")    
 	        fOut.write(str(nameA[0]) + "_dual_" + str(nameA[1])  + "|chromatid\n")
 	        fOut.write(chromatid + "\n")
@@ -169,8 +177,12 @@ if __name__ == "__main__":
 
     print "genome name:", name
     print "genome length:", len(genome)
+
+    fOut.write(name +"\n")
+    fOut.write(genome + "\n")
     chromatid = mutate(genome, mutationRate, SNPRate, longestIndel)    
     
+    print "mutate genome length:", len(chromatid)
     nameA = name.split("_")    
     fOut.write(str(nameA[0]) + "_dual_" + str(nameA[1])  + "|chromatid\n")
     fOut.write(chromatid + "\n")    

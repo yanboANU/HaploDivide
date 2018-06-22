@@ -53,14 +53,29 @@ def is_Bool_Reverse(s1, s2):
             return False
     return True    
 
+def bool_Reverse(s1):
+    s2 = ""
+
+    for c in s1:
+        if c == "1":
+            s2 = s2 + "0"
+        elif c == "0":
+            s2 = s2 + "1"
+        else:
+            s2 = s2 + c
+    return s2
+
+
 def hamming_Distance(s1, s2):
     count = 0
     assert len(s1) == len(s2)
-
+    diffPos = []
     for i in range(len(s1)):
         if s1[i] != s2[i]:
             count +=1
-    return count
+            diffPos.append(i)
+    print ("diff pos:", diffPos)       
+    return count, diffPos
 
 def similar_Distance(s1, s2):
     count = 0
