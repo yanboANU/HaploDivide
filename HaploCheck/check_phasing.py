@@ -7,7 +7,9 @@ def read_result2(filename):
     f = open(filename, "r")
     phase0 = []
     phase1 = []
-    count = 1  
+    count = 1
+    readNum = 0
+    wrongReadNum = 0
     for line in f:
         if line.startswith('S'):
             if count%2 == 1:
@@ -29,7 +31,10 @@ def read_result2(filename):
             print ("in phase0, small size: %s large size: %s" % (len(small), len(large)) )
             print ("small", small)
             print ("large", large)   
-
+            readNum += len(small) 
+            readNum += len(large)
+            wrongReadNum += min(len(small), len(large))
+            
             small =[]
             large = []  
             for i in phase1:
@@ -38,13 +43,22 @@ def read_result2(filename):
                 else:
                     small.append(i)
             print ("in phase1, small size: %s large size: %s" % (len(small), len(large)) )
- 
+            readNum += len(small) 
+            readNum += len(large)
+            wrongReadNum += min(len(small), len(large))
+
             print ("small", small)
-            print ("large", large)  
+            print ("large", large)
             print ("\n \n") 
+
             phase0 = []
             phase1 = []
     f.close()
+
+    wrongReadsRate = float(wrongReadNum)/float(readNum)
+    print ("wrong phasing reads rate: ", wrongReadsRate)
+
+    print ("corrected phasing reads rate: ", 1 - wrongReadsRate)
     #print ('all right') 
  
 
