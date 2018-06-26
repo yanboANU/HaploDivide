@@ -19,7 +19,8 @@ if __name__ == "__main__":
 
     print ("TP number:", len(TP))
     print ("FP number:", len(pre_snpPosition - real_snpPosition))
-    print ("FP:", sorted(pre_snpPosition - real_snpPosition))
+    FP = sorted(pre_snpPosition - real_snpPosition)
+    print ("FP:", len(FP))
     print ("TN number:", len(real_snpPosition - pre_snpPosition))
     print ("TN:", sorted(real_snpPosition - pre_snpPosition))
   
@@ -27,19 +28,38 @@ if __name__ == "__main__":
     phasingHaplos = read.read_phasing_result(sys.argv[3])
     print ("phasingHaplos size", len(phasingHaplos))
 
+    FPf =open("FP_content", "w")
+    FPf.write("FP content\n")
+
+    FPf.write("#FP is %d\n" % len(FP))
+    count = 0
+
+    for cc in FP:
+        FPf.write("FP: %s" % cc)
+        for phasingHaplo in phasingHaplos: 
+            if cc in phasingHaplo:
+                if phasingHaplo[cc] == '*':
+                    count += 1
+                FPf.write(" FP's label: %s" % phasingHaplo[cc])
+        FPf.write("\n")    
+
+    FPf.write("#* is %d" % count)    
+    FPf.close()
+
+    unPhasingNum = 0
     for phasingHaplo in phasingHaplos: 
         phasingHaploTP = ""
         print len(TP), len(phasingHaplo)
         for cc in TP:
             if cc not in phasingHaplo:
-                print cc, "not in"
+                #print cc, "not in"
                 continue
             phasingHaploTP = phasingHaploTP + phasingHaplo[cc]
 
         refHaploTP = ""
         for cc in TP:
             if cc not in phasingHaplo:
-                print cc, "not in"
+                #print cc, "not in"
                 continue
             #print "aa"
             if (real_snpContent[cc][0] == pre_snpContent[cc][0]): 
@@ -58,10 +78,17 @@ if __name__ == "__main__":
 
         count2, diffPos2 = tools.hamming_Distance(tools.bool_Reverse(refHaploTP), phasingHaploTP)
         if count1 < count2:
-            print len(diffPos1)
+            print "diff length:", count1
             for c in diffPos1:
-                print c, phasingHaploTP[c]
+                if phasingHaploTP[c] == '*':
+                    unPhasingNum += 1
+                else:    
+                    print "diff", c, phasingHaploTP[c]
         else:
-            print len(diffPos2)
+            print "diff length:", count2
             for c in diffPos2:
-                print c, phasingHaploTP[c]
+                if phasingHaploTP[c] == '*':
+                    unPhasingNum += 1
+                else:    
+                    print "diff", c, phasingHaploTP[c]
+    print "total unphasing number:", unPhasingNum          
