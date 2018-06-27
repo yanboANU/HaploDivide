@@ -15,6 +15,41 @@ import column
 
 class Phasing:
 
+
+    def _write_result2(self, start, end):
+        fout = open(self._contig._name+"_phasing_result_" + str(start) + "_" + str(end),"w")
+        n =  len(self._label0s)
+        fout.write("name: %s len: %s\n" % (self._contig._name, end - start))
+        fout.write("snp mutation number: %s\n" % (len(self._snp_mutation)))
+        fout.write("snp mutation rate: %s\n" % (len(self._snp_mutation)/float(end-start)))
+        fout.write("snp delete number: %s\n" % (len(self._snp_delete)))
+        fout.write("divide in %s sequences\n" % (n)) 
+        #assert n == len(self._label1s)
+        #assert len(self._phase0s) == len(self._phase1s)
+        #assert len(self._positions) == n
+        #assert len(self._phase1s) == n
+        for i in range(n):
+            #print (self._positions[i])
+            fout.write(','.join(str(j) for j in self._positions[i]))
+            fout.write("\n")
+            fout.write(self._label0s[i])
+
+            fout.write("\n")
+            fout.write(','.join(j for j in self._phase0s[i]))
+            
+            fout.write("\n")
+            fout.write(self._label1s[i])
+            
+            fout.write("\n")
+            fout.write(','.join(j for j in self._phase1s[i]))
+
+            fout.write("\n")
+            fout.write("\n")
+        fout.close()
+
+
+
+
     def _write_result(self):
         fout = open(self._contig._name+"_phasing_result","w")
         n =  len(self._label0s)
@@ -52,7 +87,9 @@ class Phasing:
         insert = []
         delete = []
         stable = []  
-        for (refPos, c) in self._columns.items():
+        it = self._columns.items()
+        #for (refPos, c) in self._columns.items():
+        for (refPos, c) in it:
             c._set_Lable()
             
             #print ("%s finish set label" % (refPos))
@@ -118,30 +155,38 @@ class Phasing:
                     or tools.same_Character(self._contig._seq[referPos-2:referPos+1]) ):
                 self._snp_delete.remove(referPos)
 
-    def _pre_Process(self):
-        stable, mutation, delete, insert = self._pre_init() 
-      
-        #print (len)
-        self._stableRange = tools.pos_2_Range(stable)    
-        #print (self._stableRange) 
-        self._snp_mutation = self._get_SNP(mutation)
-        
-        # need filter
-        self._snp_delete = self._get_SNP(delete)
-        self._snp_insert = self._get_SNP(insert)
-        
-        self._homopolyer_filter_delete()
+    def _pre_Process(self, start, end):
 
+        time1 = time.clock()
+        stable, mutation, delete, insert = self._pre_init() 
+        time2 = time.clock()
+
+        print ( "pre_init running %s Seconds" % (time2 - time1) )
+        #print (len)
+        if self._obLen == 0:  #in this case, don't need to ensure neighours in stable range
+            self._snp_mutation = mutation
+        else:    
+            self._stableRange = tools.pos_2_Range(stable)    
+            #print (self._stableRange)
+            self._snp_mutation = self._get_SNP(mutation) 
+        time3 = time.clock()
+        
+        print ( "get SNP part running %s Seconds" % (time3 - time2) )
+        # need filter, now version, don't use _snp_delete and _snp_insert
+        #self._snp_delete = self._get_SNP(delete)
+        #self._snp_insert = self._get_SNP(insert)
+        #self._homopolyer_filter_delete()
+
+        
         # output
         # temporary 
         self._snp = self._snp_mutation
                   
-        print ("snp insert len:", len(self._snp_insert))
+        #print ("snp insert len:", len(self._snp_insert))
         print ("snp mutation len:", len(self._snp_mutation))
-        print ( "snp delete lens:", len(self._snp_delete) )
-        #sys.exit()
+        #print ( "snp delete lens:", len(self._snp_delete) )
 
-        fout = open(self._contig._name+"_snp_mutation","w")
+        fout = open(self._contig._name+"_snp_mutation_" + str(start) + "_" + str(end) ,"w")
         fout.write("name: %s len: %s\n" % (self._contig._name, self._contig._len))
         fout.write("snp mutation number: %s \n" % (len(self._snp_mutation)))
         for sm in self._snp_mutation:
@@ -156,30 +201,32 @@ class Phasing:
         for a in pos:
             if tools.is_SubRange(a-self._obLen, a-1,self._stableRange) and tools.is_SubRange(a+1,a+self._obLen, self._stableRange):
                     snp.append(a)
-
         return snp
 
     def _label_reads(self):
 
-        readsLabel = {} 
-        for i in range(len(self._snp)):
+        readsLabel = {}
+        lenSNP = len(self._snp)
+        for i in range(lenSNP):
             p = self._snp[i]
             content = self._columns[p]._map_content
 	    #a = content[0][0]
 	    #b = content[1][0]
             for readId in content[0][1]:
                 if readId not in readsLabel:
-                    readsLabel[readId] = [3]*len(self._snp)
+                    readsLabel[readId] = [3]*lenSNP
                 readsLabel[readId][i] = 0 
             for readId in content[1][1]:
                 if readId not in readsLabel:
-                    readsLabel[readId] = [3]*len(self._snp)
+                    readsLabel[readId] = [3]*lenSNP
                 readsLabel[readId][i] = 1
-            j = 2  
-            while j < len(content): 
+            j = 2
+            lenContent = len(content) 
+            #while j < len(content):
+            while j < lenContent: 
                 for readId in content[j][1]:
                     if readId not in readsLabel:
-                        readsLabel[readId] = [3]*len(self._snp)
+                        readsLabel[readId] = [3]*lenSNP
                     readsLabel[readId][i] = 2
                 j += 1    
         
@@ -229,15 +276,15 @@ class Phasing:
     def _can_link_phases(self, label0, label1, phase0, phase1, position):
        
 
-        intersection00 = len(phase0.intersection(self._phase0s[-1]))
-        intersection01 = len(phase0.intersection(self._phase1s[-1]))
-        intersection10 = len(phase1.intersection(self._phase0s[-1]))
-        intersection11 = len(phase1.intersection(self._phase1s[-1]))
+        lenIntersection00 = len(phase0.intersection(self._phase0s[-1]))
+        lenIntersection01 = len(phase0.intersection(self._phase1s[-1]))
+        lenIntersection10 = len(phase1.intersection(self._phase0s[-1]))
+        lenIntersection11 = len(phase1.intersection(self._phase1s[-1]))
         print ("check can link or not")
-        print ("0 intersection new 0", intersection00) #1
-        print ("0 intersection new 1", intersection01) #0
-        print ("1 intersection new 0", intersection10) #1
-        print ("1 intersection new 1", intersection11) #0
+        print ("0 intersection new 0", lenIntersection00) #1
+        print ("0 intersection new 1", lenIntersection01) #0
+        print ("1 intersection new 0", lenIntersection10) #1
+        print ("1 intersection new 1", lenIntersection11) #0
         
         print ("pre pos:", self._positions[-1])
         print ("new pos:", position)
@@ -246,22 +293,17 @@ class Phasing:
         if pre_position[-1] >= position[0]:
             return True
        
-        if intersection00 == 0 and intersection01 == 0 and intersection10 == 0 and intersection11 == 0:
+        if lenIntersection00 == 0 and lenIntersection01 == 0 and lenIntersection10 == 0 and lenIntersection11 == 0:
             print ("canot link both 0")
             return False
 
-        if ( len(phase0.intersection(self._phase0s[-1])) >= len(phase0.intersection(self._phase1s[-1])) and	
-             len(phase1.intersection(self._phase1s[-1])) >= len(phase1.intersection(self._phase0s[-1])) ): 
+        if ( lenIntersection00 >= lenIntersection01 and	
+             lenIntersection11 >= lenIntersection10 ): 
             return True
-        elif ( len(phase0.intersection(self._phase0s[-1])) <= len(phase0.intersection(self._phase1s[-1])) and	
-             len(phase1.intersection(self._phase1s[-1])) <= len(phase1.intersection(self._phase0s[-1])) ):
+        elif ( lenIntersection00 <= lenIntersection01 and	
+               lenIntersection11 <= lenIntersection10 ):
             return True
         else:
-            print ("canot link 0 intersection new 0", len(phase0.intersection(self._phase0s[-1]))) #1
-            print ("canot link 0 intersection new 1", len(phase0.intersection(self._phase1s[-1]))) #0
-            print ("canot link 1 intersection new 0", len(phase1.intersection(self._phase0s[-1]))) #1
-            print ("canot link 1 intersection new 1", len(phase1.intersection(self._phase1s[-1]))) #0
-        
             print ("canot link")
             return False
 
@@ -300,7 +342,9 @@ class Phasing:
         print ("update in link way ")  
         pre_position = self._positions[-1]
         if pre_position[-1] >= position[0]:
-            for i in range(len(position)):
+            lenP = len(position)
+            #for i in range(len(position)):
+            for i in range(lenP):
                 if position[i] == pre_position[-1]:
                     self._positions[-1].extend(position[i+1:])
                     print ("link type 1:",i, label0[:i+1], label1[:i+1], self._label0s[-1][-(i+1):],self._label1s[-1][-(i+1):])
@@ -330,13 +374,22 @@ class Phasing:
 
         print ("link type 2:")
         print (s, e)
-        if ( len(phase0.intersection(self._phase0s[-1])) >= len(phase0.intersection(self._phase1s[-1])) and	
-             len(phase1.intersection(self._phase1s[-1])) >= len(phase1.intersection(self._phase0s[-1])) ):
- 
+
+        lenIntersection00 = len(phase0.intersection(self._phase0s[-1]))
+        lenIntersection01 = len(phase0.intersection(self._phase1s[-1]))
+        lenIntersection10 = len(phase1.intersection(self._phase0s[-1]))
+        lenIntersection11 = len(phase1.intersection(self._phase1s[-1]))
+
+        #if ( len(phase0.intersection(self._phase0s[-1])) >= len(phase0.intersection(self._phase1s[-1])) and	
+        #     len(phase1.intersection(self._phase1s[-1])) >= len(phase1.intersection(self._phase0s[-1])) ):
+
+        if ( lenIntersection00 >= lenIntersection01  and 	
+             lenIntersection11 >= lenIntersection10 ):
             self._update_labels(label0, label1, 0, phase0, phase1, readsLabel)
-        elif ( len(phase0.intersection(self._phase0s[-1])) <= len(phase0.intersection(self._phase1s[-1])) and	
-             len(phase1.intersection(self._phase1s[-1])) <= len(phase1.intersection(self._phase0s[-1])) ): 
-            
+        #elif ( len(phase0.intersection(self._phase0s[-1])) <= len(phase0.intersection(self._phase1s[-1])) and	
+        #     len(phase1.intersection(self._phase1s[-1])) <= len(phase1.intersection(self._phase0s[-1])) ):     
+        elif ( lenIntersection00 <= lenIntersection01 and	
+               lenIntersection11 <= lenIntersection10 ): 
             self._update_labels(label1, label0, 0, phase1, phase0, readsLabel)
         else: 
             print ("link error 2")
@@ -385,27 +438,29 @@ class Phasing:
         phase0 = set()
         phase1 = set() 
         readsLabel = self._label_reads()
-        self._coverage = (len(self._snp) - window + 1)*[0]
+        
+        lenSNP = len(self._snp)
+        self._coverage = (lenSNP - window + 1)*[0]
         position = []
-        print ("check  check")
-        for i in range(len(self._snp) - window + 1):
+        #for i in range(len(self._snp) - window + 1):
+        for i in range(lenSNP - window + 1):
             phases = {}
+            # every position go through all reads, not good 
             for (read, label) in readsLabel.items():
                 f = ''.join( str(j) for j in label[ i :i+window] )
                 if f not in phases:
                     phases[f] = []
                 phases[f].append(read)
-            #print (phases)   
-        
-            #print (self._snp[i:i+3])
+            
             sortedPhases = tools.sorted_Map_Value_Len(phases)
             cov = 0
             allCoverPhases = []
             for (label, reads) in sortedPhases:
                 if label.find('3') == -1:
                     #cov += len(reads)
-                    self._coverage[i] += len(reads)  
-                    allCoverPhases.append((label, len(reads)))
+                    lenReads= len(reads)
+                    self._coverage[i] += lenReads  
+                    allCoverPhases.append((label, lenReads))
             
             if ( len(allCoverPhases)>=2 and allCoverPhases[0][1] > cov * 0.2 and allCoverPhases[1][1] > cov * 0.2
                and tools.is_Bool_Reverse(allCoverPhases[0][0], allCoverPhases[1][0]) and 
