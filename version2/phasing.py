@@ -207,6 +207,9 @@ class Phasing:
 
         readsLabel = {}
         lenSNP = len(self._snp)
+
+        # self._obLen is different with window
+        # self._obLen used in looking SNP
         for i in range(lenSNP):
             p = self._snp[i]
             content = self._columns[p]._map_content
@@ -219,7 +222,7 @@ class Phasing:
             for readId in content[1][1]:
                 if readId not in readsLabel:
                     readsLabel[readId] = [3]*lenSNP
-                readsLabel[readId][i] = 1
+                readsLabel[readId][i] = 1    
             j = 2
             lenContent = len(content) 
             #while j < len(content):
@@ -229,7 +232,7 @@ class Phasing:
                         readsLabel[readId] = [3]*lenSNP
                     readsLabel[readId][i] = 2
                 j += 1    
-        
+         
         #fout = open("readsLabel", "w")
         fout = open(self._contig._name + "readsLabel", "w") 
         for readId in readsLabel:
@@ -245,7 +248,7 @@ class Phasing:
         # print ("show reads label")
         # for ele in sortFlag:
         #     print (ele)
-        return readsLabel       
+        return readsLabel 
 
     '''
     def _can_link_phases_loose_way(self, label0, label1, phase0, phase1, position):
@@ -443,25 +446,53 @@ class Phasing:
         self._coverage = (lenSNP - window + 1)*[0]
         position = []
         #for i in range(len(self._snp) - window + 1):
+        print ("window distrubution")
+        Wout = open( str(window)+"mer_distrubution","w" )
+        FSout= open("1st_2nd_"+str(window)+"mer_distrubution", "w")
         for i in range(lenSNP - window + 1):
             phases = {}
             # every position go through all reads, not good 
+            '''
             for (read, label) in readsLabel.items():
                 f = ''.join( str(j) for j in label[ i :i+window] )
                 if f not in phases:
                     phases[f] = []
                 phases[f].append(read)
-            
+            ''' 
+
+            # only consider these position correspond reads
+            p = self._snp[i]
+            content = self._columns[p]._map_content
+            lenContent = len(content) 
+            j = 0
+            while j < lenContent: 
+                for readId in content[j][1]:
+                    label = readsLabel[ readId ]
+                    f = ''.join( str(c) for c in label[ i :i+window] )
+                    if f not in phases:
+                        phases[f] = []
+                    phases[f].append(readId)
+                j = j + 1    
+
+
             sortedPhases = tools.sorted_Map_Value_Len(phases)
             cov = 0
             allCoverPhases = []
+            Wout.write( ("%d %d") % (i,p) )
             for (label, reads) in sortedPhases:
                 if label.find('3') == -1:
                     #cov += len(reads)
                     lenReads= len(reads)
                     self._coverage[i] += lenReads  
                     allCoverPhases.append((label, lenReads))
-            
+                    Wout.write(" %s %d" % (label, lenReads))
+            Wout.write("\n")
+
+            if len(allCoverPhases)>=2:
+                FSout.write("%d %d %.2f %.2f\n" % (i, p, float(allCoverPhases[0][1]) /self._coverage[i] , float(allCoverPhases[1][1]/self._coverage[i])))
+            elif len(allCoverPhases) == 1:
+                FSout.write("%d %d %.2f 0\n" % (i, p, float(allCoverPhases[0][1]) /self._coverage[i]))
+
             if ( len(allCoverPhases)>=2 and allCoverPhases[0][1] > cov * 0.2 and allCoverPhases[1][1] > cov * 0.2
                and tools.is_Bool_Reverse(allCoverPhases[0][0], allCoverPhases[1][0]) and 
                  (len(label0) == 0 or label0[-2:] == allCoverPhases[0][0][:2] or label0[-2:] == allCoverPhases[1][0][:2] ) ):
@@ -492,7 +523,7 @@ class Phasing:
                 #sys.exit()
 
         self._update(label0, label1, phase0, phase1, readsLabel, position)                
-
+        Wout.close() 
 
     def _cover_ratio_check(self, label0, label1, phase0, phase1, position, readsLabel):
         (s,e) = tools.get_Range_From_List(position, self._snp)
