@@ -12,34 +12,64 @@ import column
 import phasing
 
 
+DealLength = 5000000
+Overlap = 150000
 
-def loop(bamfile, contigs, a1, a2):
+Divide = False
+
+def loop(bamfile, contigs, a1, a2, obLen):
 
     for (contigName, contig) in contigs.items():
         print ("dealing ", contigName)
-        time1 = time.clock()
-        columns = column.init_Columns(bamfile, contig, a1, a2)
-        time2 = time.clock()
-        print ( "init columns running %s Seconds" % (time2 - time1) )
+        if (contig._len < DealLength) or (Divide == False):
+            deal_one_part(bamfile, contig, 0, contig._len, a1, a2, obLen)
+        else:
+            t2 = threading.Thread(target=loop2, name='Loop2THread', args=(bamfile,contig,a1,a2,obLen))
+            t2.start()
+            t2.join()
 
-        p = phasing.Phasing(columns, contig)
-        print ("step1")
-        p._pre_Process()
+def deal_one_part(bamfile, contig, start, end, a1, a2, obLen):
+    time1 = time.clock()
 
-        print ( "pre process" )
-        p._phasing()
+    columns = column.init_Columns(bamfile, contig, start, end, a1, a2)
+    time2 = time.clock()
+    print ( "init columns one part running %s Seconds" % (time2 - time1) )
+    
+    p = phasing.Phasing(columns, contig, obLen)
+    p._pre_Process(start, end)
+    
+    time3 = time.clock()
+    print ( "phasing pre_process one part running %s Seconds" % (time3 - time2) )
+    print ( "pre process finish" )
+    
+    p._phasing()
+    time4 = time.clock()
+    print ( "phasing one part running %s Seconds" % (time4 - time3) )
 
-        print ( "finish phasing" )
-        p._write_result() 
+    print ( "finish phasing" )
+    p._write_result2(start, end) 
+
+    time5 = time.clock()
+    print ( "writing one part running %s Seconds" % (time5 - time4) )
+    
+def loop2(bamfile, contig, a1, a2, obLen):
+    start = 0
+    
+    while start < contig._len:
+        end = min(start+DealLength, contig._len)
+        deal_one_part(bamfile, contig, start, end, a1, a2, obLen)
+        start = start + DealLength - Overlap
+
+    
 
 if __name__ == '__main__':
 
     # bam file, contig file   
     if len(sys.argv) < 3:
-        print ("python3 " + sys.argv[0] + " .bam contig/scaffold/ref a1 a2")
+        print ("python3 " + sys.argv[0] + " .bam contig/scaffold/ref a1 a2 obLen")
         sys.exit()
    
-    print ("python3 " + sys.argv[0] + " " + sys.argv[1]+ sys.argv[2] + " a1 a2")
+    print ("python3 " + sys.argv[0] + " " + sys.argv[1]+ sys.argv[2] + " a1 a2 obLen")
     bamfile = pysam.AlignmentFile(sys.argv[1], "rb")
 
     contigs = contig.read_Contig(sys.argv[2])
@@ -49,8 +79,10 @@ if __name__ == '__main__':
 
     a2 = float(sys.argv[4]) 
     #loop(bamfile, contigs)
+
+    obLen = int(sys.argv[5]) #defalt = 3
             
-    t = threading.Thread(target=loop, name='LoopTHread', args=(bamfile,contigs,a1,a2,))
+    t = threading.Thread(target=loop, name='LoopTHread', args=(bamfile,contigs,a1,a2,obLen))
     t.start()
     t.join()
     

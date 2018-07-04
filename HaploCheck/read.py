@@ -5,6 +5,17 @@ from itertools import ifilter,imap
 import collections
 import string
 
+def read_file_list(filename):
+    
+    f = open(filename, "r")
+    fileList = []
+    for line in f:
+        fileList.append(line.strip())
+
+    return fileList  
+
+
+
 
 def read_align(filename):
     # read align_pos 
@@ -92,6 +103,8 @@ def read_blasr_m5(fileName):
     for line in ifilter(lambda x: len(x) > 0, imap(string.strip, f)):
         words = line.split()
 
+        if len(words) <= 4:
+            continue
         #print words[:4] 
         queryName, queryLen, queryS, queryE = words[:4]
         queryDirection = words[4]

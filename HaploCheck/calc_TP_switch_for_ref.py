@@ -19,6 +19,9 @@ if __name__ == "__main__":
 
     print ("TP number:", len(TP))
     print ("FP number:", len(pre_snpPosition - real_snpPosition))
+    print ("Sensitive: %.2f" % (float(len(TP))/len(real_snpPosition))) 
+    print ("Error rate: %.2f" % (1- float(len(TP))/len(pre_snpPosition)))
+    
     FP = sorted(pre_snpPosition - real_snpPosition)
     print ("FP:", len(FP))
     print ("TN number:", len(real_snpPosition - pre_snpPosition))

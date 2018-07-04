@@ -15,7 +15,7 @@ def write_Map(fout, nuc):
         fout.write("%s %s %s\n"%(key, len(v), v)) 
     fout.write("\n")  
 
-# sorted value
+# sorted value ???
 def sorted_Map_Value(m, R=True):
     sortedM = []
     for k, v in [(k, m[k]) for k in sorted(m, key=m.get, reverse=R)]:
@@ -35,27 +35,33 @@ def sorted_Map_Value_Len(m, R=True):
 
 # s1 and s2 both string, only include '0'/'1' 
 def is_Bool_Reverse(s1, s2):
-    assert len(s1) == len(s2)
+    
+    lenS = len(s1)
+    assert lenS == len(s2)
     if s1.find('2') != -1 or s2.find('2') != -1:
         return False
-    for i in range(len(s1)):
+    for i in range(lenS):
         if s1[i] == s2[i]:
             return False
     return True    
 
 def hamming_Distance(s1, s2):
     count = 0
-    assert len(s1) == len(s2)
+    
+    lenS = len(s1)
+    assert lenS == len(s2)
 
-    for i in range(len(s1)):
+    for i in range(lenS):
         if s1[i] != s2[i]:
             count +=1
     return count
 
 def similar_Distance(s1, s2):
     count = 0
-    assert len(s1) == len(s2)
-    for i in range(len(s1)):
+
+    lenS = len(s1)
+    assert lenS == len(s2)
+    for i in range(lenS):
         if s1[i] == s2[i]:
             count +=1
     return count
@@ -73,13 +79,14 @@ def pos_2_Range(stablePos):
     stableRange = []
     
     i = 0
-    while i < len(stablePos)-1:
+    lenS = len(stablePos)
+    while i < lenS - 1:
         s = stablePos[i]
         e = stablePos[i]
         while (stablePos[i]+1 == stablePos[i+1]):
             i = i+1
             e = stablePos[i]
-            if (i >= len(stablePos)-1):
+            if (i >= lenS - 1):
                 break 
         i = i+1
         stableRange.append((s,e)) 
@@ -99,6 +106,8 @@ def get_Range_From_List(small, large):
     return (s,e+1)
 
 def is_SubRange(i, j, stableRange):
+    if i == j+1:
+        return True
     for (a,b) in stableRange:
         if i >= a and j <= b:
             return True
@@ -117,13 +126,14 @@ def get_Cover_Range(rangeList):
             s = i
             break
         i += 1
-    while i < len(rangeList):
+    lenR = len(rangeList)   
+    while i < lenR:
         if rangeList[i] == 3:
             e = i
             break    
         i += 1
     if e == 0:
-        e = len(rangeList)
+        e = lenR
     assert (rangeList[s:e].count(3)==0) 
     #print (s,e)
     return (s,e)

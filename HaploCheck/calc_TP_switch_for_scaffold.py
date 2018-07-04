@@ -16,35 +16,29 @@ def reverseNucleotide(c):
 
 
 if __name__ == "__main__":
-
     
 
     #before run this script
     #step1: blasr:  ref.fasta  scaffold.fasta
     
     if len(sys.argv) < 4:
-        print ("python " + sys.argv[0] + "(1)/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/mutation_record (2)/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/haplo/after_filter/contig_1_snp_mutation (3)scaffold_ref.blasr.m5 (4)*phasing_result")
+        print ("python " + sys.argv[0] + "(1)/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/mutation_record (2)/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/longest_yeast_mutation1/flye/haplo/after_filter/contig_1_snp_mutation (3)ref_scaffold.blasr.m5 (4)*phasing_result")
         sys.exit()
 
     # pos in ref
-    real_snpPosition, real_snpContent = read.read_snp(sys.argv[1])
-    
+    real_snpPosition, real_snpContent = read.read_snp(sys.argv[1])    
     #pos in contig
     pre_snpPosition, pre_snpContent = read.read_snp(sys.argv[2])
 
     alignScaffoldRef = read.read_blasr_m5(sys.argv[3])
-
     print ("number of real snp:", len(real_snpPosition))
     print ("number of pre snp:", len(pre_snpPosition))
-    
     alignScaffoldRef._left._generate_seq_pos() # real
     alignScaffoldRef._right._generate_seq_pos()# pre    
 
     #alignScaffoldRef._print_align_part(1530113,90)
-
     leftToRight, rightToLeft = alignScaffoldRef._generate_pos_to_pos()
-
-    #convert contie pos to ref pos
+    #convert contig pos to ref pos
     #print rightToLeft
     #print pre_snpPosition
 
@@ -62,14 +56,33 @@ if __name__ == "__main__":
 
 
 
-    print ("FP number:", len(set(left_snpPosition) - real_snpPosition))
+    FP = sorted(set(left_snpPosition) - real_snpPosition)
+    print ("FP number:", len(FP))
     print ("TN number:", len(real_snpPosition - set(left_snpPosition)))
   
- 
     #sys.exit() 
-
-
     Haplos = read.read_phasing_result(sys.argv[4])
+
+
+    FPf =open("FP_content", "w")
+    FPf.write("FP content\n")
+
+    FPf.write("#FP is %d\n" % len(FP))
+    count = 0
+
+    for cc in FP:
+        FPf.write("FP: %s" % cc)
+        for phasingHaplo in Haplos: 
+            if cc in phasingHaplo:
+                if phasingHaplo[cc] == '*':
+                    count += 1
+                FPf.write(" FP's label: %s" % phasingHaplo[cc])
+        FPf.write("\n")    
+
+    FPf.write("#* is %d" % count)    
+    FPf.close()
+
+
     for phasingHaplo in Haplos: 
         phasingHaploTP = ""  
         refHaploTP = ""

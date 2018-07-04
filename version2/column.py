@@ -40,8 +40,9 @@ class Column:
         insertNum = 0
         insertLength = 0 
         for (content, reads) in self._insert_content.items():
-            insertNum += len(reads)
-            insertLength += len(content)*len(reads)
+            lenReads = len(reads)
+            insertNum += lenReads
+            insertLength += len(content)*lenReads
     
         # waiting statics data 
         if insertNum > self._cov*0.2 or insertLength > self._cov*0.5:
@@ -64,20 +65,33 @@ class Column:
 
         if self._cov <= 10:
             return       
+        # do not use it
 
-        if len(s[0][1]) >= self._cov*self._a1 and s[0][0] != self._nucleotide:
-            print ("reference position %s wrong" % (self._ref_pos))
+        #if len(s[0][1]) >= self._cov*self._a1 and s[0][0] != self._nucleotide:
+            #print ("reference position %s wrong" % (self._ref_pos))
             #sys.exit("0.7 cov different from ref")
         
-        if len(s[0][1]) < self._cov*self._a1 and len(s[1][1]) >= self._cov*self._a2:
-            
-            #print ("enter 1")
+        # first round of guofei
+        '''
+        if len(s) >=2 and len(s[0][1]) <= 2*len(s[1][1]):
             if s[0][0] == '*' or s[1][0] == '*':
-
-                #print ("enter 2")
                 self._is_delete = 1
             else:
                 self._is_mutation = 1 
+        '''    
+        # second round of guofei
+        if len(s)>=2 and len(s[0][1]) <= 3*len(s[1][1]):
+            if s[0][0] == '*' or s[1][0] == '*':
+                self._is_delete = 1
+            else:
+                self._is_mutation = 1 
+        '''
+        if len(s[0][1]) < self._cov*self._a1 and len(s[1][1]) >= self._cov*self._a2:
+            if s[0][0] == '*' or s[1][0] == '*':
+                self._is_delete = 1
+            else:
+                self._is_mutation = 1 
+        '''      
  
     def _set_Lable(self):
         
@@ -95,27 +109,23 @@ class Column:
             self._is_stable = 0 
         #print (self._is_insert, self._is_mutation, self._is_delete, self._is_stable)    
 
-def init_Columns(bamfile, contig, a1=0.7, a2=0.3):
+def init_Columns(bamfile, contig, start, end, a1=0.7, a2=0.3):
     
     columns = {}
-    for read in bamfile.fetch(contig._name):
+    time1 = time.clock()
+    for read in bamfile.fetch(contig._name, start, end):
         alignedPairs = read.get_aligned_pairs()
         readName = read.query_name
-        #print (readName, len(alignedPairs))
-        #print (alignedPairs)
         i = 0
         label = 1
-        while i < len(alignedPairs):
+        lenAlignedPairs = len(alignedPairs) 
+        while i < lenAlignedPairs:
             (readPos, referPos) = alignedPairs[i]
-            
             # "get reference first not None"
             while label and isinstance(readPos, int) and not type(referPos) == int:
                 i += 1
                 (readPos, referPos) = alignedPairs[i]
-                #print (readPos, referPos)
-                #continue
             label = 0
-
             # get columns(align info)
             if type(referPos) == int:
                 if referPos not in columns:
@@ -136,19 +146,14 @@ def init_Columns(bamfile, contig, a1=0.7, a2=0.3):
             
             #get insert info
             if isinstance(readPos, int) and not type(referPos) == int:
-                #print ("%s get insert" % (i))
                 (readPos_pre, referPos_pre) = alignedPairs[i-1]    
                 assert type(referPos_pre) == int 
-                '''
-                if not type(referPos_pre) == int:
-                    i = i+1
-                    continue  
-                '''    
                 if referPos_pre >= read.reference_end-1:
                     break 
                 #columns[referPos_pre]._insert_content = [] 
                 insertSeq = read.query_sequence[readPos] 
-                while i+1 < len(alignedPairs): 
+                #while i+1 < len(alignedPairs):
+                while i+1 < lenAlignedPairs: 
                     i = i+1
                     (readPos, referPos) = alignedPairs[i]
                     if isinstance(readPos, int) and not type(referPos) == int:
@@ -165,7 +170,11 @@ def init_Columns(bamfile, contig, a1=0.7, a2=0.3):
         #print ("check", columns[13]._insert_content)        
         #sys.exit()    
         #i = i+1    
-    write_Columns(contig._name , columns)        
+    time2 = time.clock()
+    
+    print ( "init columns(two loops) running %s Seconds" % (time2 - time1) )
+    #for speed, large case not write
+    write_Columns(contig._name+ "_" + str(start)+"_"+str(end) , columns)        
     return columns
 
 
