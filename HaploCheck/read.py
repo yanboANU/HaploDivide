@@ -69,6 +69,34 @@ def read_snp(filename):
     return snpPosition, snpContent
 
 
+
+def read_snp2(filename, start, end, base):
+
+    f = open(filename, "r")
+    snpPosition = set()
+    snpContent = {}
+    for line in f:  
+        words = line.strip().split()
+        if len(words) == 5: #for file contig_snp_mutation
+            
+            pos = int(words[0])
+            if pos < start or pos > end :
+                continue
+            snpPosition.add(pos+base) 
+            snpContent[ pos+base ] = (words[1], words[3])
+        if len(words) == 3: #for file mutation record
+
+            pos = int(words[0])
+            if pos < start or pos > end :
+                continue
+            snpPosition.add(pos+base)
+            snpContent[pos+base] = (words[1], words[2])
+
+    return snpPosition, snpContent
+
+
+
+
 def read_phasing_result(filename):
     ##########
     #unfinish only read one segment
