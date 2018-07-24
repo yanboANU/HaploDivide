@@ -31,6 +31,7 @@ def calc_TP_coverage(snpP1, snpP2, columns, minCov):
     for p in snpP2:
         if columns[p] >= minCov:
             snpP2F.add(p)
+    print ">=", minCov, 
     print_TP(snpP1F, snpP2F)
 
 def print_TP(snpP1, snpP2):
@@ -53,16 +54,25 @@ if __name__ == "__main__":
     #/media/admin-u6260133/Data1/Project/HaploDivide/longest_yeast/mutation1/mutation_record
     #*snp_mutation
     #*columns
-
+    if sys.argv[3] == "0":
+        start, end, base = 0, sys.maxint, 0
+    if sys.argv[3] == "1":
+        start, end, base = 585989, 2702781, -585989
+    if sys.argv[3] == "2":
+        start, end, base = 2746291, 12954384, -2746291 
+    if sys.argv[3] == "5":
+        start, end, base = 29553836, 121757928 , -29553836
+    
+    ignoreLen = 10000
     # function: calc TP 
-    real_snpPosition, real_snpContent = read.read_snp(sys.argv[1])
+    real_snpPosition, real_snpContent = read.read_snp2(sys.argv[1], start+ignoreLen, end-ignoreLen, base)
     pre_snpPosition, pre_snpContent = read.read_snp(sys.argv[2])
  
     print "1-sensitive(%) error_rate(%)"
     # function: calc switch number
     FP,TN = print_TP(real_snpPosition, pre_snpPosition)
 
-    columns = read_columns(sys.argv[3])
+    #columns = read_columns(sys.argv[3])
     '''
     print "FP"
     for c in FP:
@@ -71,7 +81,8 @@ if __name__ == "__main__":
     print "TN"
     for c in TN:
         print c, columns[c]
-    '''    
+    '''
+    '''
     calc_TP_coverage(real_snpPosition,pre_snpPosition, columns,0)
     calc_TP_coverage(real_snpPosition,pre_snpPosition, columns,5)
     calc_TP_coverage(real_snpPosition,pre_snpPosition, columns,10)
@@ -79,3 +90,4 @@ if __name__ == "__main__":
     calc_TP_coverage(real_snpPosition,pre_snpPosition, columns,20)
     calc_TP_coverage(real_snpPosition,pre_snpPosition, columns,25)
     calc_TP_coverage(real_snpPosition,pre_snpPosition, columns,30)
+    '''
