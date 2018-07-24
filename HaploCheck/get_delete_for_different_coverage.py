@@ -5,12 +5,9 @@ import tools
 def read_columns(filename):
     f = open(filename, "r")
     covColumns ={}
-
     contentColumns = {}
     for line in f:
-        #print line
         words = line.strip().split(" ")
-        #print len(words)
         if len(words) <= 1:
             continue
         if words[0].startswith("reference"):
@@ -21,12 +18,24 @@ def read_columns(filename):
         else:
             if coverage not in covColumns:
                 covColumns[coverage] = {}
+            if pos not in covColumns[coverage]:
+                covColumns[coverage][pos] = 0
             if words[0] == '*':    
-                covColumns[coverage][pos] = float(words[1])/coverage
+                covColumns[coverage][pos] +=  float(words[1])/coverage
     f.close()
 
-    print sorted(contentColumns.items())
-    print sorted(covColumns.items())
+    # two delete sigal add together
+    # yu think push gap more stable
+    '''
+    for cov in covColumns:
+        for pos in covColumns[cov]:
+            if (pos+1 in contentColumns) and (contentColumns[pos] == contentColumns[pos+1]) and (pos+1 in covColumns[cov]):
+                covColumns[cov][pos] += covColumns[cov][pos+1] 
+                covColumns[cov][pos+1] = 0
+    '''
+
+    #print sorted(contentColumns.items())
+    #print sorted(covColumns.items())
     return covColumns, contentColumns    
 
     
@@ -50,75 +59,79 @@ if __name__ == "__main__":
     #real_snpPosition, real_snpContent = read.read_snp2(sys.argv[1], 585989, 2702781, -585989) # mutation_record
     #real_snpPosition, real_snpContent = read.read_snp2(sys.argv[1], 2746291, 12954384, -2746291) # mutation_record
 
+    if len(sys.argv) < 6:
+        print ("python " + sys.argv[0] + " mutation_record *column chr1_multuiple_pos which_block averageCov")
+        sys.exit()
+   
+    print ("python " + sys.argv[0] + " " + sys.argv[1] + " " + sys.argv[2] + " " + sys.argv[3] + " "+ sys.argv[4]+ " "+ sys.argv[5])
+
     if sys.argv[4] == "1":
         start, end, base = 585989, 2702781, -585989
     if sys.argv[4] == "5":
         start, end, base = 29553836, 121757928 , -29553836
     
-    #real_snpPosition, real_snpContent = read.read_snp2(sys.argv[1], start, end, base) # mutation_record
-    covColumns,contentColumns = read_columns(sys.argv[2]) # 
-    sys.exit() 
-    SNPCount = {}
+    # we ignore first and last 10k
+    ignoreLen = 10000
+    real_snpPosition, real_snpContent = read.read_snp2(sys.argv[1], start + ignoreLen, end-ignoreLen, base+1) # mutation_record, record position of delete is previous position, so base need + 1
+    covColumns,contentColumns = read_columns(sys.argv[2]) #
 
-    ''' 
-    for key in real_snpContent:
-        if key not in contentColumns:
-            print "noReport", key, "have delete, but report nothing"
-        #assert key in contentColumns
     '''
-    multiplePos = read_multiple_pos(sys.argv[3], start, end, base) 
-    for cov in range(7,10):
+    for key in real_snpPosition:
+        if key not in contentColumns: # if key not in contentColumns, means coverage equal to 0
+            print key
+        assert key in contentColumns
+    '''
+    multiplePos = read_multiple_pos(sys.argv[3], start + ignoreLen, end-ignoreLen, base)
+
+    averageCov = int(sys.argv[5])  
+
+    for cov in range(2*averageCov - 1, 2*averageCov + 2):
         snp = {}
         nonSnp= {}
+        snpPoss = {}
+        nonSnpPoss = {}
         for key in covColumns[cov]:
             if key in real_snpPosition:
-
-                assert key not in multiplePos
-                if real_snpContent[key][1] != contentColumns[key] and real_snpContent[key][1] != contentColumns[key].upper():
+                assert key-1 not in multiplePos
+                if real_snpContent[key][1] != contentColumns[key-1] and real_snpContent[key][1] != contentColumns[key-1].upper():
                     print "maybe something wrong"
-                    print real_snpContent[key], contentColumns[key] 
-                assert real_snpContent[key][1] == contentColumns[key] or real_snpContent[key][1] == contentColumns[key].upper() 
-                if cov == 8 and covColumns[cov][key] >= 0.9:
-                    print "snp",key, covColumns[cov][key], real_snpContent[key] 
-                
-                if len(covColumns[cov][key]) == 0:
-                    print "nothing", key, cov
-                    #assert cov <= 5
-                    continue
-                if len(covColumns[cov][key]) <= 1 and covColumns[cov][key][0][1] == '*':
-                    F1st_2nd = (covColumns[cov][key][0][0], 0 ) 
-                elif  covColumns[cov][key][0][1] == '*' or covColumns[cov][key][1][1] == '*':
-                    F1st_2nd = ( covColumns[cov][key][0][0], covColumns[cov][key][1][0] ) 
-                if F1st_2nd not in snp:
-                    snp[ F1st_2nd ] = 0
-                snp[ F1st_2nd ] = snp[ F1st_2nd ] + 1
-            elif key not in multiplePos:
-                print cov, key, covColumns[cov][key]
-                if len(covColumns[cov][key]) <= 1 and covColumns[cov][key][0][1] == '*':
-                    if len(covColumns[cov][key]) == 0:
-                        print "nothing", key, cov
-                        assert cov <= 5 
-                        continue
-                    F1st_2nd = (covColumns[cov][key][0][0], 0 )    
-                elif len(covColumns[cov][key]) >=2 and (covColumns[cov][key][0][1] == '*' or covColumns[cov][key][1][1] == '*'):
-                    if cov == 8 and covColumns[cov][key][1][0] >= 0.3:
-                        print "non",key, covColumns[cov][key]
-                    F1st_2nd = (covColumns[cov][key][0][0], covColumns[cov][key][1][0] )  
-                else:
-                    continue
-                if F1st_2nd not in nonSnp:
-                    nonSnp[ F1st_2nd ] = 0
-                nonSnp[ F1st_2nd ] = nonSnp[ F1st_2nd ] + 1
+                    print real_snpContent[key], contentColumns[key-1], contentColumns[key] 
+                assert real_snpContent[key][1] == contentColumns[key-1] or real_snpContent[key][1] == contentColumns[key-1].upper() 
+                rate = covColumns[cov][key] 
+                if cov == 2*averageCov and rate <= 0.1:
+                    print "snp",key, rate, real_snpContent[key]     
+                if rate not in snp:
+                    snp[ rate ] = 0
+                    snpPoss[ rate ] = []
+                snp[ rate ] += 1
+                snpPoss[ rate ].append(key)
+            elif key-1 not in multiplePos:
+                rate = covColumns[cov][key] 
+                if rate >= 0.3 and cov == 2*averageCov:
+                    print "non", key, rate
+                if rate not in nonSnp:
+                    nonSnp[ rate ] = 0
+                    nonSnpPoss[ rate ] = []
+                nonSnp[ rate ] += 1
+                nonSnpPoss[ rate ].append(key)
 
         #print cov, len(snp), len(nonSnp)
         if len(covColumns[cov]) > 100000 and cov>5:
-            foutSnp = open(str(cov)+"SNP_F1st_2nd_frequence.txt","w")
-            for (v1,v2) in snp:
-                foutSnp.write('%.2f %.2f %d\n' % (v1, v2, snp[(v1, v2)]))
+            foutSnp = open(str(cov)+"SNP_rate_frequence.txt","w")
+            for v in snp:
+                foutSnp.write('%.2f %d\n' % (v, snp[v]))
+                #print (v, snpPoss[v])
+                for pos in sorted(snpPoss[v]):
+                    foutSnp.write("%s " % pos)
+                foutSnp.write("\n")    
             foutSnp.close()
             
-            foutNon = open(str(cov)+"nonSNP_F1st_2nd_frequence.txt","w")
-            for (v1,v2) in nonSnp:
-                foutNon.write('%.2f %.2f %d\n' % (v1, v2, nonSnp[(v1, v2)]))
+            foutNon = open(str(cov)+"nonSNP_rate_frequence.txt","w")
+            for v in nonSnp:
+                foutNon.write('%.2f %d\n' % (v, nonSnp[v]))
+                #print (v, nonSnpPoss[v])
+                for pos in sorted(nonSnpPoss[v]):
+                    foutNon.write("%s " % pos)
+                foutNon.write("\n")    
             foutNon.close()    
     
