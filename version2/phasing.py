@@ -81,19 +81,32 @@ class Phasing:
             fout.write("\n")
         fout.close()
 
-    def _pre_init(self):
+    def _pre_init(self, start, end, contigLen, averageCov):
 
         mutation = []
         insert = []
         delete = []
         stable = []  
         it = self._columns.items()
+
+        #remove head and tail 10k,  
+        if start == 0:
+            start = 10000;
+        
+        if end == contigLen:
+            assert end > 10000
+            end = contigLen - 10000 
         #for (refPos, c) in self._columns.items():
         for (refPos, c) in it:
-            c._set_Lable()
-            
+            c._is_insert = 0
+            c._is_mutation = 0
+            self._is_delete = 0
+            self._is_stable = 0    
+            if refPos < start or refPos > end or c._cov<7 or c._cov>=2*averageCov:
+                continue
             #print ("%s finish set label" % (refPos))
-            #sys.exit()
+            #sys.exit() 
+            c._set_Lable()
             if c._is_insert == 1:
                 insert.append(refPos)
         
@@ -137,7 +150,6 @@ class Phasing:
     def _homopolyer_filter_delete(self):
 
         tem = copy.deepcopy(self._snp_delete)
-
         for referPos in tem:
             m = self._columns[referPos]._map_content
             assert m[0][0] == '*' or m[1][0] == '*'
@@ -155,49 +167,94 @@ class Phasing:
                     or tools.same_Character(self._contig._seq[referPos-2:referPos+1]) ):
                 self._snp_delete.remove(referPos)
 
-    def _pre_Process(self, start, end):
+    def _pre_Process(self, start, end, contigLen, averageCov):
 
         time1 = time.clock()
-        stable, mutation, delete, insert = self._pre_init() 
+        stable, mutation, delete, insert = self._pre_init(start, end, contigLen, averageCov) 
         time2 = time.clock()
 
+        print ("snp insert len:", len(insert))
+        print ("snp len:", len(mutation))
+        print ( "snp delete lens:", len(delete) )
         print ( "pre_init running %s Seconds" % (time2 - time1) )
         #print (len)
         if self._obLen == 0:  #in this case, don't need to ensure neighours in stable range
             self._snp_mutation = mutation
         else:    
             self._stableRange = tools.pos_2_Range(stable)    
-            #print (self._stableRange)
+            print (self._stableRange)
+            #sys.exit()
             self._snp_mutation = self._get_SNP(mutation) 
         time3 = time.clock()
         
         print ( "get SNP part running %s Seconds" % (time3 - time2) )
         # need filter, now version, don't use _snp_delete and _snp_insert
-        #self._snp_delete = self._get_SNP(delete)
-        #self._snp_insert = self._get_SNP(insert)
-        #self._homopolyer_filter_delete()
-
-        
+        self._snp_delete = self._get_SNP(delete)
+        self._snp_insert = self._get_SNP(insert)
+        self._homopolyer_filter_delete() 
         # output
         # temporary 
+        #change July, eight
         self._snp = self._snp_mutation
-                  
-        #print ("snp insert len:", len(self._snp_insert))
-        print ("snp mutation len:", len(self._snp_mutation))
-        #print ( "snp delete lens:", len(self._snp_delete) )
+        
+        print ("snp insert len:", len(self._snp_insert))
+        print ("snp len:", len(self._snp_mutation))
+        print ( "snp delete lens:", len(self._snp_delete) )
+        self._write_SNP(start, end)
+        self._write_delete(start, end)
+        self._write_insert(start, end)
+    
 
+    # in the following three reading, reference start with 1
+    def _write_insert(self, start, end):
+        fout = open(self._contig._name+"_insert_" + str(start) + "_" + str(end) ,"w")
+        fout.write("name: %s len: %s\n" % (self._contig._name, self._contig._len))
+        fout.write("insert number: %s \n" % (len(self._snp_insert)))
+        for sm in self._snp_insert:
+            assert sm in self._columns
+            fout.write("%s %s " % (sm+1, self._columns[sm]._insert_content))
+            #fout.write("%s %s" % (self._columns[sm]._insert_content[1][0], len(self._columns[sm]._insert_content[1][1])))
+            #fout.write(" %s" % (self._columns[sm]._cov))
+            fout.write("\n")
+        fout.close()
+   
+    
+    def _write_delete(self, start, end):
+        fout = open(self._contig._name+"_delete_" + str(start) + "_" + str(end) ,"w")
+        fout.write("name: %s len: %s\n" % (self._contig._name, self._contig._len))
+        fout.write("snp mutation number: %s \n" % (len(self._snp_delete)))
+        for sm in self._snp_delete:
+            # reference start with 1, and dbSNP150, dbSNP158 both record deletion at position 11
+            # A   T  C      
+            # 11  12 13
+            # A   T  C    reads1
+            # A   *  C    reads2
+            fout.write("%s %s %s " % (sm, self._columns[sm]._map_content[0][0], len(self._columns[sm]._map_content[0][1])))
+            if len(self._columns[sm]._map_content) >= 2:
+                fout.write("%s %s" % (self._columns[sm]._map_content[1][0], len(self._columns[sm]._map_content[1][1])))
+                #fout.write(" %s" % (self._columns[sm]._cov))
+                fout.write("\n")
+        fout.close()
+    
+    def _write_SNP(self, start, end):
         fout = open(self._contig._name+"_snp_mutation_" + str(start) + "_" + str(end) ,"w")
         fout.write("name: %s len: %s\n" % (self._contig._name, self._contig._len))
         fout.write("snp mutation number: %s \n" % (len(self._snp_mutation)))
         for sm in self._snp_mutation:
-            fout.write("%s %s %s " % (sm, self._columns[sm]._map_content[0][0], len(self._columns[sm]._map_content[0][1])))
+            fout.write("%s %s %s " % (sm+1, self._columns[sm]._map_content[0][0], len(self._columns[sm]._map_content[0][1])))
             fout.write("%s %s" % (self._columns[sm]._map_content[1][0], len(self._columns[sm]._map_content[1][1])))
+            #fout.write(" %s" % (self._columns[sm]._cov))
             fout.write("\n")
         fout.close()
+    
 
+        
     def _get_SNP(self, pos):
         # unfinish 
-        snp = [] 
+        if self._obLen == 0:
+            return pos
+
+        snp = []
         for a in pos:
             if tools.is_SubRange(a-self._obLen, a-1,self._stableRange) and tools.is_SubRange(a+1,a+self._obLen, self._stableRange):
                     snp.append(a)
