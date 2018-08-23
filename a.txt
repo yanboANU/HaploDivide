@@ -1,0 +1,25 @@
+nput: *bam chrId
+     samfile = pysam.AlignmentFile(sys.argv[1], "rb")
++
+
+-
+-    newBam = pysam.AlignmentFile("2_filter.bam", "wb", template=samfile)
++    newBam = pysam.AlignmentFile("chr1.bam", "wb", template=samfile)
+     count = 0
+-    for read in samfile.fetch():
++    chrID = sys.argv[2]
++    for read in samfile.fetch(chrID):
+         #readName = read.query_name
+         #readMapScore = read.mapping_quality
+-        mapped = float(read.qlen)/len(read.query_sequence)
+-        if mapped >= 0.5:
+-            count += 1
+-            newBam.write(read)
++        #mapped = float(read.qlen)/len(read.query_sequence)
++        #print (read.flag)
++        #if mapped >= 0.5 and (read.flag==0 or read.flag==16):
++        count += 1
++        newBam.write(read)
+
+     print ("after 2 filter, the number of reads:", count)
+     samfile.close()

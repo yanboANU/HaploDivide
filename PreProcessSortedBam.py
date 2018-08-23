@@ -84,7 +84,7 @@ def align2Cigar(readAlignSeq, referAlignSeq, orignalCigar):
         if i >= end:
             break
     count = 0
-    print (i) 
+    #print (i) 
     if i < len(readAlignSeq):
         for c in readAlignSeq[i:]:
             if c != '-':
@@ -117,9 +117,10 @@ def alignPos_2_Sequence(readAlignPos, readSeq):  # include gap
      
 def print_Alignment(readAlignPos,referAlignPos,readSeq,contigSeq):
 
-    
-    print (alignPos_2_Sequence(readAlignPos, readSeq)) 
+    print ("ref") 
     print (alignPos_2_Sequence(referAlignPos, contigSeq))
+    print ("read")
+    print (alignPos_2_Sequence(readAlignPos, readSeq)) 
     #print (referAlignPos)
 
 def write_No_Repeat(reads, samfile):
@@ -174,7 +175,7 @@ def realignment(reads, contigs):
   
     #newAlignedPairs = [] 
     readAndNewAlign = [] 
-    contigSeq = contigs[0].Seq
+    contigSeq = contigs.Seq
     #readList = ["S1_1592","S1_1926","S1_1181","S1_1778"]
     for (readName, read) in reads.items():
         '''        
@@ -185,10 +186,10 @@ def realignment(reads, contigs):
         readSeq = read.query_sequence
         #print (alignedPairs)
         readSeqLen = len(readSeq)
-        print ("query length:",len(readSeq))
-        print ("old cigar query length:",calc_Query_Length(read.cigar))
+        #print ("query length:",len(readSeq))
+        #print ("old cigar query length:",calc_Query_Length(read.cigar))
         #print (read.cigarstring)
-        print (read.cigar) 
+        #print (read.cigar) 
         #print (read.query_alignment_sequence)
         #print (read.get_aligned_pairs(False, True))
         
@@ -199,19 +200,23 @@ def realignment(reads, contigs):
         for (readPos, referPos) in alignedPairs:
             readAlignPos.append(readPos)
             referAlignPos.append(referPos)  
-        
+        print ("readAlignPos")
+        print (readAlignPos)
+        print ("referAlignPos")
+        print (referAlignPos)
         print_Alignment(readAlignPos,referAlignPos,readSeq,contigSeq) 
       
         for i in range(alignLen-1):
             # pushing refer gap
-            # i-1    i
-            # 5000  none
-            # 10     11 
+            #        i-1    i  j
+            # refer 5000  none c
+            # read   10     11
+            
             if (not type(referAlignPos[i]) == int) and (type(referAlignPos[i-1]) == int) and (type(readAlignPos[i]) == int):
                 j = i + 1
                 while (j  < alignLen):
                     c = referAlignPos[j]
-                    if (type(c) == int):
+                    if (type(c) == int):   # find first int after i,  push or not push
                         if (contigSeq[c] == readSeq[readAlignPos[i]]):
                             referAlignPos[i] = c
                             referAlignPos[j] = None
@@ -219,14 +224,18 @@ def realignment(reads, contigs):
                             #print ''.join(tstr)
                         break
                     j += 1
+                   
             # pushing query gap
+            #        i-1   i    j
+            # refer 5000  5001 
+            # read   10   none  c
             if (not type(readAlignPos[i]) == int) and (type(readAlignPos[i-1]) == int) and (type(referAlignPos[i]) == int):
                 j = i + 1
                 while (j  < alignLen):
                     c = readAlignPos[j]
                     if (type(c) == int):
-                        if not type(referAlignPos[i]) == int:
-                            print ("position %s: (%s, %s)"% (i, readAlignPos[i], referAlignPos[i]))
+                        #if not type(referAlignPos[i]) == int:
+                            #print ("position %s: (%s, %s)"% (i, readAlignPos[i], referAlignPos[i]))
 
                         assert type(referAlignPos[i]) == int
                         if (readSeq[c] == contigSeq[referAlignPos[i]]):
@@ -236,8 +245,9 @@ def realignment(reads, contigs):
                             #print ''.join(tstr)
                         break
                     j += 1
-            # 10    None
-            # 5000  None
+            #       i-1     i 
+            # refer 5000  None
+            # read  10    None
             if ( (not type(referAlignPos[i]) == int) and (type(referAlignPos[i-1]) == int) 
                  and (not type(readAlignPos[i]) == int) and (type(readAlignPos[i-1]) == int) ):
                 j = i + 1
@@ -266,9 +276,9 @@ def realignment(reads, contigs):
         referAlignSeq = alignPos_2_Sequence(referAlignPos, contigSeq)   
         newCigar = align2Cigar(readAlignSeq, referAlignSeq, read.cigar)
         readAndNewAlign.append((read, newCigar))
-        print ("new cigar", newCigar)
+        #print ("new cigar", newCigar)
         lenByNewCigar =  calc_Query_Length(newCigar) 
-        print ("new cigar, query length:",calc_Query_Length(newCigar))
+        #print ("new cigar, query length:",calc_Query_Length(newCigar))
         assert lenByNewCigar == readSeqLen 
         #break
     return readAndNewAlign   
@@ -277,14 +287,18 @@ if __name__ == "__main__":
     # sorted bam
     samfile = pysam.AlignmentFile(sys.argv[1], "rb") 
     # contig
-    #contigs = contig.read_Contig(sys.argv[2])     
+    contigs = contig.read_Contig(sys.argv[2])     
+    assert len(contigs) == 1
+
+    for key in contigs:
+        contig = contigs[key]
 
     # step one
     reads = remove_Duplicate(samfile)
     write_No_Repeat(reads,samfile) 
     # step two: realignment, merge gap togther
-    #readAndNewAlign = realignment(reads, contigs)
-    #write_New_Bam(readAndNewAlign, samfile)
+    readAndNewAlign = realignment(reads, contig)
+    write_New_Bam(readAndNewAlign, samfile)
    
     samfile.close() 
 

@@ -74,71 +74,40 @@ def Indel(subS):
 
 def mutate(genome, mutationRate, SNPRate, longestIndel):
 
-
     ##############
     #SNP
     ##############
-    
-
     SNPNumber = int(len(genome)*mutationRate*SNPRate)
-    #SNPNumber = 2
-    
-    chromatid = genome
     print "SNP number: ", SNPNumber
+    
     mutations = {}
     for i in range(SNPNumber):       #[0,SNPNumber) 
-        if i%1000 == 0:
-            print "mutation number: ", i
-        if i != 0:
-            genome = chromatid
         pos = random.randint(0, len(genome)-1)  #index [0, len(genome)-1] 
         while pos in mutations:
             pos = random.randint(0, len(genome)-1)  #index [0, len(genome)-1] 
         snp_c = SNP(genome[pos]) 
-        chromatid = genome[:pos] + snp_c +  genome[pos+1:]
         mutations[pos] = (genome[pos], snp_c)
-        #print "mutation position: ", pos
-        #print genome
-        #print chromatid
-    #print "final genome: ", chromatid
-    genome = chromatid
-    ##############
-    #Indel
-    ##############
-   
-    IndelNumber = int(len(genome)*mutationRate*(1-SNPRate))
-    #IndelNumber = 2
-
-    print "Indel number: ", IndelNumber
-    indels = {}
-    for i in range(IndelNumber):
-        if i != 0:
-            genome = chromatid
-        pos = random.randint(0, len(genome)-1)
-        while pos in indels:
-            pos = random.randint(0, len(genome)-1)
-        #indel_c = Indel(genome[pos:pos+longestIndel]) # indel random [1, longestLen]
-        indel_c = Indel_point_length(genome[pos:pos+longestIndel]) #
-        chromatid = genome[:pos] + indel_c + genome[pos+longestIndel:]
-        indels[pos] = (genome[pos:pos+longestIndel],indel_c)  
-       
-        #print "mutation position: ", pos
-        #print genome
-        #print chromatid
-
-    print (mutations)
+    #print (mutations)
     sorted_m = (sorted(mutations.items()))
-    sorted_i = (sorted(indels.items()))
- 
+    
+    start = 0
+    chromatid = ""
+    for (key, v) in sorted_m:
+        chromatid = chromatid + genome[start:key]
+        chromatid = chromatid + v[1]
+        start = key+1
+
+    #print start
+    #print sorted_m[-1]
+    chromatid = chromatid + genome[start:len(genome)] 
+    
+    print "genome length:", len(genome)
+    print "mutation ref length:", len(chromatid)
+
+    assert len(genome) == len(chromatid)
     fout1 = open("mutation_record", "w")
-    fout2 = open("indel_record", "w")
     for c in sorted_m:
         fout1.write("%s %s %s\n" % (c[0], c[1][0], c[1][1]) )
-       
-    for c in sorted_i:
-
-        fout2.write("insert length %s\n" % (len(c[1][1]) - len(c[1][0])) ) 
-        fout2.write("%s %s %s\n" % (c[0], c[1][0], c[1][1]) ) 
     return chromatid 
 
 if __name__ == "__main__":
@@ -168,8 +137,7 @@ if __name__ == "__main__":
 	        fOut.write(genome + "\n")
                 chromatid = mutate(genome, mutationRate, SNPRate, longestIndel)
                 print "mutate genome length:", len(chromatid)
-                nameA = name.split("_")    
-	        fOut.write(str(nameA[0]) + "_dual_" + str(nameA[1])  + "|chromatid\n")
+                fOut.write(name + "_dual\n")
 	        fOut.write(chromatid + "\n")
             name = line
             genome = ""
@@ -184,8 +152,7 @@ if __name__ == "__main__":
     chromatid = mutate(genome, mutationRate, SNPRate, longestIndel)    
     
     print "mutate genome length:", len(chromatid)
-    nameA = name.split("_")    
-    fOut.write(str(nameA[0]) + "_dual_" + str(nameA[1])  + "|chromatid\n")
+    fOut.write(name + "_dual\n")
     fOut.write(chromatid + "\n")    
 
     fIn.close()

@@ -81,7 +81,7 @@ if __name__ == "__main__":
             print key
         assert key in contentColumns
     '''
-    multiplePos = read_multiple_pos(sys.argv[3], start + ignoreLen, end-ignoreLen, base)
+    multiplePos = read_multiple_pos(sys.argv[3], start + ignoreLen, end-ignoreLen, base+1)
 
     averageCov = int(sys.argv[5])  
 
@@ -98,8 +98,10 @@ if __name__ == "__main__":
                     print real_snpContent[key], contentColumns[key-1], contentColumns[key] 
                 assert real_snpContent[key][1] == contentColumns[key-1] or real_snpContent[key][1] == contentColumns[key-1].upper() 
                 rate = covColumns[cov][key] 
+                '''
                 if cov == 2*averageCov and rate <= 0.1:
                     print "snp",key, rate, real_snpContent[key]     
+                '''
                 if rate not in snp:
                     snp[ rate ] = 0
                     snpPoss[ rate ] = []
@@ -107,8 +109,10 @@ if __name__ == "__main__":
                 snpPoss[ rate ].append(key)
             elif key-1 not in multiplePos:
                 rate = covColumns[cov][key] 
+                '''
                 if rate >= 0.3 and cov == 2*averageCov:
                     print "non", key, rate
+                '''
                 if rate not in nonSnp:
                     nonSnp[ rate ] = 0
                     nonSnpPoss[ rate ] = []

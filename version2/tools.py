@@ -15,6 +15,13 @@ def write_Map(fout, nuc):
         fout.write("%s %s %s\n"%(key, len(v), v)) 
     fout.write("\n")  
 
+
+def write_Map_Len(fout, nuc):
+    for (key,v) in nuc.items():
+        fout.write("%s %s\n"%(key, len(v))) 
+    fout.write("\n")  
+
+
 # sorted value ???
 def sorted_Map_Value(m, R=True):
     sortedM = []

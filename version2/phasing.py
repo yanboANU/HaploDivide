@@ -179,19 +179,26 @@ class Phasing:
         print ( "pre_init running %s Seconds" % (time2 - time1) )
         #print (len)
         if self._obLen == 0:  #in this case, don't need to ensure neighours in stable range
-            self._snp_mutation = mutation
+            self._snp_mutation, self._snp_insert, self._snp_delete = mutation, insert, delete
+
         else:    
-            self._stableRange = tools.pos_2_Range(stable)    
-            print (self._stableRange)
+            #self._stableRange = tools.pos_2_Range(stable)    
+            #print (self._stableRange)
             #sys.exit()
-            self._snp_mutation = self._get_SNP(mutation) 
+            #print (mutation)
+            #print (insert)
+            #print (delete)
+            self._snp_mutation, self._snp_insert, self._snp_delete = self._get_SNP(mutation, insert, delete)
+            #print (self._snp_mutation)
+            #print (self._snp_insert)
+            #print (self._snp_delete)
         time3 = time.clock()
         
         print ( "get SNP part running %s Seconds" % (time3 - time2) )
         # need filter, now version, don't use _snp_delete and _snp_insert
-        self._snp_delete = self._get_SNP(delete)
-        self._snp_insert = self._get_SNP(insert)
-        self._homopolyer_filter_delete() 
+        # self._snp_delete = self._get_SNP(delete)
+        # self._snp_insert = self._get_SNP(insert)
+        #self._homopolyer_filter_delete() 
         # output
         # temporary 
         #change July, eight
@@ -200,6 +207,7 @@ class Phasing:
         print ("snp insert len:", len(self._snp_insert))
         print ("snp len:", len(self._snp_mutation))
         print ( "snp delete lens:", len(self._snp_delete) )
+
         self._write_SNP(start, end)
         self._write_delete(start, end)
         self._write_insert(start, end)
@@ -212,7 +220,7 @@ class Phasing:
         fout.write("insert number: %s \n" % (len(self._snp_insert)))
         for sm in self._snp_insert:
             assert sm in self._columns
-            fout.write("%s %s " % (sm+1, self._columns[sm]._insert_content))
+            fout.write("%s %s %s" % (sm+1, self._columns[sm]._insert_content, self._columns[sm]._insert_number))
             #fout.write("%s %s" % (self._columns[sm]._insert_content[1][0], len(self._columns[sm]._insert_content[1][1])))
             #fout.write(" %s" % (self._columns[sm]._cov))
             fout.write("\n")
@@ -248,7 +256,51 @@ class Phasing:
         fout.close()
     
 
-        
+    def _get_SNP(self, mutate, insert, delete):
+        # unfinish 
+        if self._obLen == 0:
+            return pos
+        snp = []
+        for pos in mutate:
+            snp.append((pos, 'M'))
+        for pos in insert:
+            snp.append((pos, 'I'))
+        for pos in delete:
+            snp.append((pos, 'D'))
+        snp = sorted(snp)
+        snpLen = len(snp)
+        print ("snp+indel length:", snpLen)
+        i = 0
+        mutate = []
+        insert = []
+        delete = []
+        while i+1 < snpLen:
+            #print (i)
+            if i+1 < snpLen and snp[i][0] < snp[i+1][0] - self._obLen:
+                if snp[i][1] == 'M': 
+                    mutate.append(snp[i][0])    
+                if snp[i][1] == 'I': 
+                    insert.append(snp[i][0])
+                if snp[i][1] == 'D': 
+                    delete.append(snp[i][0])
+                i = i+1
+                continue
+            while i+1<snpLen and snp[i][0] >= snp[i+1][0] - self._obLen:
+                i = i+1
+            i += 1    
+        # deal last element
+        i=snpLen-1 
+        if snp[i][0] > snp[i-1][0] + self._obLen:
+            if snp[i][1] == 'M': 
+                mutate.append(snp[i][0])    
+            if snp[i][1] == 'I': 
+                insert.append(snp[i][0])
+            if snp[i][1] == 'D': 
+                delete.append(snp[i][0])
+        return mutate, insert, delete
+
+       
+    '''   
     def _get_SNP(self, pos):
         # unfinish 
         if self._obLen == 0:
@@ -259,7 +311,7 @@ class Phasing:
             if tools.is_SubRange(a-self._obLen, a-1,self._stableRange) and tools.is_SubRange(a+1,a+self._obLen, self._stableRange):
                     snp.append(a)
         return snp
-
+    '''
     def _label_reads(self):
 
         readsLabel = {}

@@ -59,7 +59,7 @@ def read_snp(filename):
     snpContent = {}
     for line in f:  
         words = line.strip().split()
-        if len(words) == 5: #for file contig_snp_mutation
+        if len(words) >= 5: #for file contig_snp_mutation
             snpPosition.add(int(words[0])) 
             snpContent[int(words[0])] = (words[1], words[3])
         if len(words) == 3: #for file mutation record
@@ -75,20 +75,34 @@ def read_snp2(filename, start, end, base):
     f = open(filename, "r")
     snpPosition = set()
     snpContent = {}
+    #requre snp store in order
     for line in f:  
         words = line.strip().split()
         if len(words) == 5: #for file contig_snp_mutation
             
             pos = int(words[0])
+            '''
             if pos < start or pos > end :
                 continue
+            '''
+            if pos < start:
+                continue
+            if pos > end:
+                break
             snpPosition.add(pos+base) 
             snpContent[ pos+base ] = (words[1], words[3])
         if len(words) == 3: #for file mutation record
 
             pos = int(words[0])
+            '''
             if pos < start or pos > end :
                 continue
+            '''
+
+            if pos < start:
+                continue
+            if pos > end:
+                break
             snpPosition.add(pos+base)
             snpContent[pos+base] = (words[1], words[2])
 
