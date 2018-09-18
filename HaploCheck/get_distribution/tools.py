@@ -37,20 +37,20 @@ def find_neighbor(a, b, ref):
     for i in range(bbLen-1):
         if bb[i][1] != bb[i+1][1] and (bb[i+1][0]-bb[i][0] <= 2) and is_same(ref._seq[bb[i][0]:bb[i+1][0]+1]):
             '''
-            if bb[i+1][0]-bb[i][0] == 2:
+            if bb[i+1][0]-bb[i][0] <= 2:
                 print (bb[i], bb[i+1])
                 print (ref._seq[bb[i][0]:bb[i+1][0]+1])
             '''    
             if bb[i][1] == "TN":
-                a.remove(bb[i][0])
+                if (bb[i][0] in a) and (bb[i+1][0] in b):
+                    a.remove(bb[i][0])
+                    b.remove(bb[i+1][0])
+                    ans += 1
             else:
-                b.remove(bb[i][0])
-            if bb[i+1][1] == "TN":
-                a.remove(bb[i+1][0])
-            else:
-                b.remove(bb[i+1][0])
-
-            ans += 1
+                if (bb[i][0] in a) and (bb[i+1][0] in b):
+                    b.remove(bb[i][0])
+                    a.remove(bb[i+1][0])
+                    ans += 1
     return ans, a, b
 
 

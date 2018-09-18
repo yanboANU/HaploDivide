@@ -25,7 +25,9 @@ if __name__ == '__main__':
     contigs = contig.read_Contig(sys.argv[2])
     #output Columns, Ins, Cov 
     for (contigName, contig) in contigs.items():
-        columns = column.init_Columns(bamfile, contig, True, 0, contig._len)
+        print ("contig len:", contig._len)
+        columns = column.init_Columns(bamfile, contig, True, 10000, 100000)
+        print (len(columns))
         for (refPos, c) in columns.items():
             c._sort_map_content()
             if len(c._map_content) == 1:

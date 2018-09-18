@@ -242,6 +242,8 @@ class Phasing:
                 fout.write("%s %s" % (self._columns[sm]._map_content[1][0], len(self._columns[sm]._map_content[1][1])))
                 #fout.write(" %s" % (self._columns[sm]._cov))
                 fout.write("\n")
+            else:
+                fout.write("\n")
         fout.close()
     
     def _write_SNP(self, start, end):

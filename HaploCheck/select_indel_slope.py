@@ -21,7 +21,7 @@ if __name__ == "__main__":
     nonSNP1st = read_1st(sys.argv[2])
 
     slope = 0.1
-    print ("slope, FP, FN, FN+FP, totalNode, FP/float(TP+FP), float(FN)/(realNode)")
+    print ("slope, FP, FN, FN+FP, TP, TP+FP, TP+FN, FP/float(TP+FP), float(FN)/(realNode)")
     minFPFN = 50000
     bestCaseFPFN = []
     while slope <= 1:
@@ -54,7 +54,7 @@ if __name__ == "__main__":
             bestCaseFPFN.append(rate1*100)
             bestCaseFPFN.append(rate2*100)
             #print bestCaseFPFN
-        print ("%s %s %s %s %.2f %.2f"%(slope, FP, FN, FN+FP, rate1, rate2))
+        print ("%s %s %s %s %s %s %s %.2f %.2f"%(slope, FP, FN, FN+FP, TP, FP+TP, TP+FN, rate1, rate2))
         slope = slope + 0.01
     print ("slope FP FN error_rate 1-sensitive")
     for v in bestCaseFPFN:

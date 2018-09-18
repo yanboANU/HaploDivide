@@ -78,13 +78,15 @@ if __name__ == "__main__":
     
     
     FP,TN, TP = tools.print_TP(real_snpPosition, pre_snpPosition, contig._seq)
-    '''    
-    cov = read.read_cov(sys.argv[5]) 
+        
+    cov, count = read.read_cov(sys.argv[5]) 
 
-    averageCov = int(sys.argv[6])
-    snpP1F, snpP2F = tools.calc_TP_coverage(real_snpPosition, pre_snpPosition, cov, averageCov/2, contig._seq)
+    #averageCov = int(sys.argv[6])
+    #print cov
+    #sys.exit()
+    snpP1F, snpP2F = tools.calc_TP_coverage(real_snpPosition, pre_snpPosition, cov, 8, contig._seq)
     #snpP1FF, snpP2FF = calc_TP_coverage(snpP1F, snpP2F, cov,30, contig)
-     
+    ''' 
     snpP1FF, snpP2FF = tools.calc_TP_coverage_between(snpP1F, snpP2F, cov, averageCov/2, averageCov*2, contig._seq)
     #snpP1F, snpP2F = calc_TP_coverage_between(real_snpPosition,pre_snpPosition, cov, 30, 90,  contig)
     '''

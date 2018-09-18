@@ -1,7 +1,7 @@
 import sys
 import read
 import tools  
-
+import contig
 
 
 if __name__ == "__main__":
@@ -32,7 +32,14 @@ if __name__ == "__main__":
     print "error_rate(%) 1-sensitive(%)"
     # function: calc switch number
     FP,TN,TP = tools.print_TP(real_snpPosition, pre_snpPosition, "")
-    '''
-    cov = read.read_cov(sys.argv[4])
+   
+    contigs = contig.read_Contig(sys.argv[4]) # contig seq start with 0
+    assert len(contigs) == 1
+    contigName, contig = contigs.popitem()
+
+    cov, count = read.read_cov(sys.argv[5])
+    print "length larger than 8 ", count 
     #averageCov = int(sys.argv[5])
-    '''
+   
+
+    snpP1F, snpP2F = tools.calc_TP_coverage(real_snpPosition, pre_snpPosition, cov, 8, contig._seq)

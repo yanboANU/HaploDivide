@@ -6,9 +6,15 @@ import os
 import sys
 import random
 
+
+
+singleMultipleThresdhold = 3
+
+DoubleMultipleThresdhold = 8
+
+
 def is_same(a,b):
     return a == b or a == b.upper() or a.upper() == b
-
 
 def read_positions(filename):
     f = open(filename, "r")
@@ -44,7 +50,7 @@ if __name__ == "__main__":
         while i<refLen and ref[i] == ref[start]:
             i = i+1;
         l = i - start    
-        if l >= 2: # at least 2 same
+        if l >= singleMultipleThresdhold:
             #fout.write("%d %d\n" % (start,i))
             mutipleRange.append((start,i))
             sumLen = sumLen + l
@@ -69,7 +75,7 @@ if __name__ == "__main__":
                 i = i+2
                 
             l = i - start    
-            if l >= 4:  # threshold 2
+            if l >= DoubleMultipleThresdhold:
                 #fout.write("%d %d\n" % (start,i))
                 count = count + 1
                 sumLen = sumLen + l
@@ -82,32 +88,39 @@ if __name__ == "__main__":
     
     mutiple = sorted(mutipleRange)
 
-    fout = open("chr1_multiple_pos2","w")
-    mutiplePos= set()
+    fout = open("chr1_multiple_range","w")
     for (i,j) in mutiple:
-        if i>0:
-            s = i
-        else:
-            s=i
-        e = j
-        for t in range(s,e+1):
-            mutiplePos.add(t+1) #range is index, we want pos
-        
-    for c in mutiplePos:
-        fout.write("%d\n" % (c))  
+        fout.write("%d %d \n" % (i,j))
     fout.close()    
+
     
-    '''
+    
     pos = read_positions(sys.argv[2])
    
+    lenMutiple = len(mutiple) 
+    i=0
+    while i+1<lenMutiple:
+        if mutiple[i][1] > mutiple[i+1][0]:
+            print mutiple[i], mutiple[i+1]
 
+        assert mutiple[i][1] <= mutiple[i+1][0]
+        i = i+1
+
+    '''
     i = 0
     count = 0
      
-    fout = open("filter_single3_double8_multiple_delete1s","w")
-    #fout = open("filter_single3_double8_multiple_insert1s","w")
+    fout = open("filter_single3_double8_multiple_insert1s","w")
     for (p, c) in pos:
-        if p not in mutiplePos:        
-            fout.write("%d %s %s\n" % (p, c[0], c[1]))
+        while p > mutiple[i][0]:
+            i = i+1
+        if p > mutiple[i-1][1]:
+            dis = min(p-mutiple[i-1][1], mutiple[i][0]-p)
+            if dis >= 3:
+                count = count + 1
+                print mutiple[i-1], mutiple[i], dis
+                print ref[p-5:p+5]
+                print p, c[0], c[1]
+                fout.write("%d %s %s\n" % (p, c[0], c[1]))
     fout.close()           
     '''

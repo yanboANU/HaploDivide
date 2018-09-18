@@ -40,7 +40,7 @@ def get_FN_rate(filename, errorRate):
         slope = float(words[1])
         FNRate = 0
         #for j in range(0, errorNumber):
-        '''
+        
         for j in range(0, localCov):
             sum2 = (localCov-j)
             #print j
@@ -53,11 +53,11 @@ def get_FN_rate(filename, errorRate):
                 FNRate += get_combination_number(localCov,j) * get_combination_number(sum2,i) / float(2**(sum2-1)) * ((errorRate)**(j)) * ((1-errorRate)**(sum2))
 
                 #print i,FNRate
-        print ("%.2f" % (FNRate))
+        print ("%.2f" % (FNRate*100))
             #print i,FNRate
-        '''
+        
 
-                
+        '''        
         TPRate = 0  
         for j in range(0, localCov):
             sum2 = (localCov-j)
@@ -71,6 +71,7 @@ def get_FN_rate(filename, errorRate):
                     #print i, TPRate
             #print FNRate
         print ("%.2f" % (TPRate))
+        '''
          
 
 if __name__ == "__main__":

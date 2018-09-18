@@ -1,0 +1,4 @@
+python stat.py /home/yanbo/bio/Project/Guofei/result/NA24385/NIST_CallsIn2Technologies_05182015/1_insert1s /home/yanbo/bio/Project/Guofei/reference/GRCh37_hg19/chr1.fa
+('1', 249250621)
+NIST real snp Content accord with this reference
+total pattern number: 9081

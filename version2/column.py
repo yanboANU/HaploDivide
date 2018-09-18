@@ -77,58 +77,88 @@ class Column:
                 maxb=b
                 maxa=a
         #print (maxb, self._cov, self._get_threshold_for_insert())
-        '''
+        
         if maxb >= self._get_threshold_for_insert():
+        #if maxb >= 0.5:
             self._insert_content = maxa
+            self._insert_number = maxb
             return True
+    
         '''
-
         if maxb >= self._cov*self._a2:
             self._insert_content = maxa
             self._insert_number = maxb
             return True
+        '''    
         return False
     
     def _get_threshold_for_insert(self):
-        if self._cov <= 7:
-            return self._cov*(0.44)
-        if self._cov <= 12:  
-            return self._cov*(0.39)
-
-        if self._cov <= 14:  
-            return self._cov*(0.32)
-        if self._cov <= 26:
-            return self._cov*(0.29) 
+        if self._cov <= 8:
+            return self._cov*(0.8)
+        if self._cov <= 13:  
+            return self._cov*(0.69)
+        if self._cov <= 17:  
+            return self._cov*(0.55)
+        #return 0.5
         
-        if self._cov <= 32:
-            return self._cov*(0.24) 
-        return self._cov*(0.22)
+        if self._cov <= 22:
+            return self._cov*(0.43)
+        if self._cov <= 27:
+            return self._cov*(0.39) 
+        if self._cov <= 33:
+            return self._cov*(0.35) 
+        if self._cov <= 37:
+            return self._cov*(0.32) 
+        if self._cov <= 43:
+            return self._cov*(0.3) 
+        if self._cov <= 53:
+            return self._cov*(0.29) 
+        return self._cov*(0.28)
+    
 
     def _get_threshold_for_delete(self):
-        if self._cov <= 10:
-            return self._cov*(0.34)
-        if self._cov <= 13:  
+        if self._cov <= 8:
+            return self._cov*(0.7)
+        if self._cov <= 12:  
+            return self._cov*(0.56)
+        #return 0.5
+        
+        if self._cov <= 17:  
+            return self._cov*(0.47)
+        if self._cov <= 22:
+            return self._cov*(0.38)
+        if self._cov <= 27:  
+            return self._cov*(0.33)
+        if self._cov <= 32:
+            return self._cov*(0.29) 
+        if self._cov <= 37:  
             return self._cov*(0.28)
-
-        if self._cov <= 19:
+        if self._cov <= 42:
+            return self._cov*(0.27) 
+        if self._cov <= 47:
             return self._cov*(0.25) 
-
-        if self._cov <= 25:
-            return self._cov*(0.22) 
-        return self._cov*(0.20)
-
+        if self._cov <= 52:
+            return self._cov*(0.24) 
+        return self._cov*(0.23)
+        
 
     #mutation
     #stable
     #delete
+
+    def _sort_map_content(self): #by value length 
+        s = tools.sorted_Map_Value_Len(self._map_content)
+        self._map_content = s  
+        return s
+
     def _set_Mutation_or_Delete(self):
         
         self._is_delete = 0
         self._is_mutation = 0
+        s = self._sort_map_content()
+
         #print (self._ref_pos)
         #print (self._map_content)
-        s = tools.sorted_Map_Value_Len(self._map_content)
-        self._map_content = s   
         #print (s) 
         ''' 
         if self._cov <= 10:
@@ -159,16 +189,17 @@ class Column:
                         self._is_mutation = 1
                         return
 
-        for i in range(lenS):
-            '''
+        #for i in range(lenS):
+        for i in range(0,2): 
             if s[i][0] == '*' and len(s[i][1]) >= self._get_threshold_for_delete():
+            #if s[i][0] == '*' and len(s[i][1]) >= 0.5:
                 self._is_delete = 1
                 break
             '''
             if s[i][0] == '*' and len(s[i][1]) >= self._cov*self._a1:
                 self._is_delete = 1
                 break
-         
+            ''' 
         ''' 
         # first round of guofei 
         if len(s) >=2 and len(s[0][1]) <= 2*len(s[1][1]):
@@ -210,7 +241,7 @@ class Column:
             self._is_stable = 0 
         #print (self._is_insert, self._is_mutation, self._is_delete, self._is_stable)    
 
-def init_Columns(bamfile, contig, start, end, a1=0.3, a2=0.4):
+def init_Columns(bamfile, contig, writeLable=False, start=0, end=1000000, a1=0.3, a2=0.4):
     
     columns = {}
     time1 = time.clock()
@@ -227,17 +258,22 @@ def init_Columns(bamfile, contig, start, end, a1=0.3, a2=0.4):
     # in the alignedPairs, reference start with 0, read start with 0
     # samtool tview first line, reference position label start with 1 
     ################################################################### 
-    for read in bamfile.fetch(contig._name, start, end):
+    #for read in bamfile.fetch(contig._name, start, end):
     #for read in bamfile.fetch("1", start, end):
+
+    for read in bamfile.fetch():
         alignedPairs = read.get_aligned_pairs()
         readName = read.query_name
+
+        print (readName)
+        sys.exit()
         i = 0
         label = 1
         lenAlignedPairs = len(alignedPairs) 
-        while i < lenAlignedPairs:
+        while i+1 < lenAlignedPairs:
             (readPos, referPos) = alignedPairs[i] #check referPos always increse or not
             # "get reference first not None"
-            #print (i, readPos, referPos)
+            print (i, readPos, referPos)
             #sys.exit()
             while label and isinstance(readPos, int) and not type(referPos) == int:
                 i += 1
@@ -291,8 +327,9 @@ def init_Columns(bamfile, contig, start, end, a1=0.3, a2=0.4):
     
     print ( "init columns(two loops) running %s Seconds" % (time2 - time1) )
     #for speed, large case not write
-    #write_Columns(contig._name+ "_" + str(start)+"_"+str(end) , columns, end-start)
-    #write_Ins(contig._name+ "_" + str(start)+"_"+str(end) , columns, end-start)
+    if writeLable:
+        write_Columns(contig._name+ "_" + str(start)+"_"+str(end) , columns, end-start)
+        write_Ins(contig._name+ "_" + str(start)+"_"+str(end) , columns, end-start)
     write_Cov(contig._name+ "_" + str(start)+"_"+str(end) , columns, end-start)        
     return columns
 

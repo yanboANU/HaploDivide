@@ -1,0 +1,11 @@
+python stat.py /home/yanbo/bio/Project/Guofei/result/NA12878/High-confidence/1_insert1s /home/yanbo/bio/Project/Guofei/reference/GRCh37_hg19/chr1.fa
+('1', 249250621)
+NIST real snp Content accord with this reference
+total pattern number: 9513
+len xdy 1221 0.12835067802
+len xddy 1003 0.105434668349
+len xdddy 544 0.057184904867
+len xddddy 371 0.0389992641648
+len xdddddy 6374 0.6700304846
+known pattern number: 9513
+unknown pattern number: 0.0

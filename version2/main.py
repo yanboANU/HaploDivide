@@ -32,7 +32,7 @@ def deal_one_part(bamfile, contig, start, end, a1, a2, obLen, averageCov):
     time1 = time.clock()
     
 
-    columns = column.init_Columns(bamfile, contig, start, end, a1, a2)
+    columns = column.init_Columns(bamfile, contig, False, start, end, a1, a2)
     time2 = time.clock()
     print ( "init columns one part running %s Seconds" % (time2 - time1) )
      

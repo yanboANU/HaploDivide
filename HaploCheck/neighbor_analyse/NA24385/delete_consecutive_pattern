@@ -1,0 +1,9 @@
+python stat.py /home/yanbo/bio/Project/Guofei/result/NA24385/NIST_CallsIn2Technologies_05182015/1_delete1s /home/yanbo/bio/Project/Guofei/reference/GRCh37_hg19/chr1.fa
+('1', 249250621)
+NIST real snp Content accord with this reference
+no consective identical bases 418 0.0479742912889
+one two consective identical bases 1232 0.141397911167
+two two consective identical bases 629 0.0721909789969
+one three consective identical bases 6434 0.738436818547
+one four consective identical bases 0 0.0
+one five consective identical bases 0 0.0

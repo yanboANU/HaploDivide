@@ -3,8 +3,9 @@ import sys
 
 def sep_record(filename):
     f = open(filename, "r")
-    fHete = open("1_inserts_hete", "w")
-    fHomo = open("1_inserts_homo", "w")
+    fout = filename.split('_')
+    fHete = open(fout[0] + '_' + fout[1] + "_hete", "w")
+    fHomo = open(fout[0] + '_' + fout[1] + "_homo", "w")
     heteLen = 0
     homoLen = 0
     for line in f:

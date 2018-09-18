@@ -1,0 +1,11 @@
+python stat.py /home/yanbo/bio/Project/Guofei/result/NA12878/High-confidence/1_delete1s /home/yanbo/bio/Project/Guofei/reference/GRCh37_hg19/chr1.fa
+('1', 249250621)
+NIST real snp Content accord with this reference
+total pattern number: 10369
+len xdy 1255 0.121033850902
+len xddy 944 0.0910406017938
+len xdddy 534 0.0514996624554
+len xddddy 372 0.0358761693509
+len xdddddy 7264 0.700549715498
+known pattern number: 10369
+unknown pattern number: 0.0

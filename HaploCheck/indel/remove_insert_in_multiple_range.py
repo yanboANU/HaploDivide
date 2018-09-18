@@ -68,6 +68,12 @@ def read_snp(filename, multiplePos):
 
 if __name__ == "__main__":
 
+    
+    if len(sys.argv) < 3:
+        print ("python " + sys.argv[0] + " multiple_pos snp_mutation which_block")
+        sys.exit()
+    print ("python " + sys.argv[0] + " " + sys.argv[1]+" "+ sys.argv[2] + " " + sys.argv[3])
+
 
     #multiple pos
     #*snp_mutation

@@ -19,6 +19,14 @@ def read_1st(filename):
                 poss[rate].append(int(words[i]))
         count += 1        
     return val, poss;
+'''
+def real_3file(filename):
+    val = {}
+    poss = {}
+    f = open(filename, "r")
+
+    return val, poss
+'''    
 def is_same(s):
     c = s[0]
     sLen = len(s)
@@ -55,6 +63,10 @@ if __name__ == "__main__":
     
     snp1st, snpPoss = read_1st(sys.argv[1])
     nonSNP1st, nonSNPPoss = read_1st(sys.argv[2])
+
+    #snp1st, snpPoss = read_3file(sys.argv[1])
+    #nonSNP1st, nonSNPPoss = read_3file(sys.argv[2])
+
 
     '''
     contigs = contig.read_Contig(sys.argv[3])

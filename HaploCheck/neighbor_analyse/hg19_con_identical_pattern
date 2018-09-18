@@ -1,0 +1,8 @@
+python stat.py /home/yanbo/bio/Project/Guofei/result/NA24385/NIST_CallsIn2Technologies_05182015/1_delete1s /home/yanbo/bio/Project/Guofei/reference/GRCh37_hg19/chr1.fa
+('1', 249250621)
+no consective identical bases 58243832 0.258539198975
+one two consective identical bases 88593756 0.393259816944
+two two consective identical bases 25930100 0.115101411654
+one three consective identical bases 39335197 0.174605447044
+one four consective identical bases 9849034 0.0437189874636
+one five consective identical bases 3328550 0.0147751379193

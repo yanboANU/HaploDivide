@@ -26,10 +26,10 @@ def read_vcf(filename):
             continue
         
         #print s1Len, s2Len
-        if chrID != "1":
-            break
+        #if chrID != "1":
+            #break
            
-        '''
+        
         if s1Len == 1 and s2Len == 1:
             snps[chrID].append((words[1], s1, s2, homo))
             continue
@@ -47,30 +47,20 @@ def read_vcf(filename):
                 if flag == True:
                     #print s2
                     snps[chrID].append((words[1], s1, s2, homo))
-            #sys.exit()
-            #continue
-
-        
-        if s1Len == 2 and s2Len == 1 and s1[0] == s2:
-            delete1s[chrID].append((words[1], s1, s2))
-            continue
-        '''
+                    continue
 
         if s1Len == 1 and s2Len >= 2 and s2[0] == s1:
-            if s2Len == 3 and s2.count(',')>1:
+            if s2Len == 3 and s2.count(',')>=1:
                 print s2
                 continue
             insert1s[chrID].append((words[1], s1, s2, homo))
             continue        
            
-        '''
+        
         if s1Len >= 2 and s2Len == 1 and s1[0] == s2:
-            if s2Len == 3 and s2.count(',')>1:
-                print s2
-                continue
             delete1s[chrID].append((words[1], s1, s2, homo))
             continue
-        '''  
+         
     return insert1s, delete1s, snps    
  
 

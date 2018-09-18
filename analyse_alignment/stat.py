@@ -1,0 +1,1 @@
+/home/yulin/liyanbo/script/HaploDivide/HaploCheck/neighbor_analyse/stat.py
