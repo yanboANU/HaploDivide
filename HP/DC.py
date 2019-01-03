@@ -8,345 +8,14 @@
 
 import sys
 import tools
-from libprism.local.prepare import verify_complexity, blocks_from_clouds, contigs_from_clouds
-import cloud
 import copy
 import numpy as np
 import operator
-class Haplotype: # struct
-    def __init__(self, start):
-        self.start = start
-        self.seq = list()
-        self.len = 0
-        self.end = 0
-        self.left_clouds = set() # element is clouds name => clouds
-        self.right_clouds = set()
-        self.unsure_clouds = set()
-
-
-    def __len__(self):
-        return len(self.seq)
-
-    def __getitem__(self,index): # directly []
-        start, end = self.start, self.end
-        assert self.len == len(self.seq)
-        if index < start or index > end:
-            return -1
-        else:
-            return self.seq[index-start]
-       
-       
-    def __setitem__(self,index, val):
-
-        self.seq[index-self.start] = val
-
-    def __getslice__(self,s,e): # directly [s,e), yanbo
-        ans = []
-        index = s
-        while index < e:
-            ans.append(self.__getitem__(index))
-            index += 1
-        return ans        
-
-     
-    def find_gaps(self):
-        gaps = {}
-        mid_gap_pos = []
-        for i in range(self.start, self.end+1):
-            if self[i] == -1:
-                mid_gap_pos.append(i)
-        #print "mid gap pos", mid_gap_pos
-
-        for c in self.left_clouds:
-            # before
-            for i in range(c.start, self.start):
-                if i not in gaps and c[i] != -1:
-                    gaps[i] = []
-                if c[i] != -1:    
-                    gaps[i].append(c[i])        
-            # after
-            for i in range(self.end+1, c.end+1):
-                if i not in gaps and c[i] != -1:
-                    gaps[i] = []
-                if c[i] != -1:    
-                    gaps[i].append(c[i])        
-
-            for i in mid_gap_pos:
-                if c[i] != -1:
-                    if i not in gaps:
-                        gaps[i] = []
-                    gaps[i].append(c[i])
-                
-
-        for c in self.right_clouds:
-            for i in range(c.start, self.start):
-                if i not in gaps and c[i] != -1:
-                    gaps[i] = []
-                if c[i] != -1:    
-                    gaps[i].append(tools.int_reverse(c[i]))        
-            for i in range(self.end+1, c.end+1):
-                if i not in gaps and c[i] != -1:
-                    gaps[i] = []
-                if c[i] != -1:
-                    gaps[i].append(tools.int_reverse(c[i]))      
-            for i in mid_gap_pos:
-                if c[i] != -1:
-                    if i not in gaps:
-                        gaps[i] = []
-                    gaps[i].append(tools.int_reverse(c[i]))
-        return gaps
     
 
-    def fill_gap_next(self, stop):
-        print "aa"
-        gaps= self.find_gaps()
-        s = self.start
-        e = self.end
-        sortedGapsKey = sorted (gaps.keys())
-        l = len(gaps)
-        if l == 0:
-            return
-        print sortedGapsKey 
-        if sortedGapsKey[l-1] > e: # find new end
-            i = l-1
-            key = e
-            while i >= 0 and sortedGapsKey[i] > stop:
-                i -= 1
-            while i >= 0 and sortedGapsKey[i] > e:
-                if tools.most_frequency( gaps [ sortedGapsKey[i] ] ) != -1:
-                    key = sortedGapsKey[i]
-                    break
-                i -= 1
-            if key > e:     
-                add = [ tools.most_frequency(gaps[key]) ]
-                temp_seq = self.seq + (key-self.end-1) * [-1] + add
-                self.set_seq(temp_seq)
-        for key in gaps:
-            if key <= self.end and key >= self.start:
-                self[key] = tools.most_frequency(gaps[key])
-        print "new start, new end", self.start, self.end    
-        print self[self.start]
-        print self[self.end]
-        assert self[self.start] != -1 and self[self.end] != -1
-
-    def fill_gap_pre(self, stop):
-        gaps= self.find_gaps()
-        s = self.start
-        e = self.end
-        sortedGapsKey = sorted (gaps.keys())
-        l = len(gaps)
-        if l == 0:
-            return
-        if sortedGapsKey[0] < s:  # find new start
-            i = 0
-            key = s
-
-            while i < l and sortedGapsKey[i] < stop:
-                i += 1     
-            while i < l and sortedGapsKey[i] < s:
-                if tools.most_frequency( gaps [ sortedGapsKey[i] ]  ) != -1:
-                    key = sortedGapsKey[i]
-                    break
-                i += 1
-            if key < s:     
-                add = [ tools.most_frequency(gaps[key]) ]
-                temp_seq = add + (self.start-key-1) * [-1] + self.seq
-                self.start = key 
-                self.set_seq(temp_seq)
-
-          
-        for key in gaps:
-            if key <= self.end and key >= self.start:
-                self[key] = tools.most_frequency(gaps[key])
-        print "new start, new end", self.start, self.end    
-        print self[self.start]
-        print self[self.end]
-        assert self[self.start] != -1 and self[self.end] != -1
-
-
-    def fill_gap_inside_outside(self):
-        gaps= self.find_gaps()
-        print "gaps", gaps
-        #h.fill_seq(gaps)
-        s = self.start
-        e = self.end
-        sortedGapsKey = sorted (gaps.keys())
-        l = len(gaps)
-        if l == 0:
-            return
-        print self.start, self.end          
-        print sortedGapsKey
-        # find smallest and biggest postion of gaps
-        # samllest and biggest should coles to orignal start and end
-        if sortedGapsKey[0] < s:  # find new start
-            i = 0
-            key = s
-            #while i < l and sortedGapsKey[i] < s-10:
-                #i += 1     
-            while i < l and sortedGapsKey[i] < s:
-                if tools.most_frequency( gaps [ sortedGapsKey[i] ]  ) != -1:
-                    key = sortedGapsKey[i]
-                    break
-                i += 1
-            if key < s:     
-                add = [ tools.most_frequency(gaps[key]) ]
-                temp_seq = add + (self.start-key-1) * [-1] + self.seq
-                self.start = key 
-                self.set_seq(temp_seq)
-
-          
-        if sortedGapsKey[l-1] > e: # find new end
-            i = l-1
-            key = e
-            #while i >= 0 and sortedGapsKey[i] > e+10:
-                #i -= 1
-            while i >= 0 and sortedGapsKey[i] > e:
-                if tools.most_frequency( gaps [ sortedGapsKey[i] ] ) != -1:
-                    key = sortedGapsKey[i]
-                    break
-                i -= 1
-            if key > e:     
-                add = [ tools.most_frequency(gaps[key]) ]
-                temp_seq = self.seq + (key-self.end-1) * [-1] + add
-                self.set_seq(temp_seq)
-
-        #sys.exit()
-        for key in gaps:
-            if key <= self.end and key >= self.start:
-                self[key] = tools.most_frequency(gaps[key])
-        print "new start, new end", self.start, self.end    
-        print self[self.start]
-        print self[self.end]
-        assert self[self.start] != -1 and self[self.end] != -1
-
-        
-        '''
-        
-        #print "cc", key, self.start, self.end
-        # fill mid and also extend two sides 
-        if key < s-10 or key > e+10: # should not fill gap too much
-            continue
-        if key < self.start:
-            #print "dd", key, self.start, self.end
-            add = [ tools.most_frequency(gaps[key]) ]
-            if add[0] == -1: # add only has one element
-                continue
-            temp_seq = add + (self.start-key-1) * [-1] + self.seq
-            self.start = key
-            self.set_seq(temp_seq)
-        elif key > self.end:
-            add = [ tools.most_frequency(gaps[key]) ]
-            if add[0] == -1:
-                continue
-            temp_seq = self.seq + (key-self.end-1) * [-1] + add
-            #self.end = key # no need, every time set_seq, will calculate end every time
-            self.set_seq(temp_seq)
-        else:
-            assert key <= self.end and key >= self.start
-            #print "bb", key, self.start, self.end, gaps[key]
-            self[key] = tools.most_frequency(gaps[key])
-            #print self[key]
-        
-        # only fill mid gap
-        if key <= self.end and key >= self.start:
-            self[key] = tools.most_frequency(gaps[key])
-        '''    
-    def fill_gap_inside(self):
-        gaps= self.find_gaps()
-        #print "gaps", gaps
-        #h.fill_seq(gaps)
-        for key in gaps:
-            # only fill mid gap
-            if key <= self.end and key >= self.start:
-                self[key] = tools.most_frequency(gaps[key])
-
-
-
-
-
-    def calc_MEC(self):
-
-        #print self.start
-        #print self.seq
-        ans = 0
-        for c in self.left_clouds:
-            s1 = c.seq
-            s2 = self[c.start : c.end+1]
-            #print s1, s2
-            ans += tools.hamming_distance(s1,s2)  
-        print "left MEC", ans    
-        for c in self.right_clouds:
-            s1 = tools.list_reverse(c.seq)
-            s2 = self[c.start : c.end+1]
-            #print s1, s2
-            ans += tools.hamming_distance(s1,s2)  
-        print "right MEC", ans 
-        return ans
-   
-    def deal_unsure_clouds(self):
-        print "deal unsure clouds" 
-
-        sure = list() 
-        for c in self.unsure_clouds:
-            s0 = c.seq
-            s1 = tools.list_reverse(s0)
-            s2 = self[c.start : c.end+1] # haplotype seq 
-            print s0, s1, s2
-            if tools.hamming_distance(s0, s2) < tools.hamming_distance(s1, s2):
-                self.left_clouds.add(c)    
-                sure.append(c)
-            elif tools.hamming_distance(s0, s2) > tools.hamming_distance(s1, s2): 
-
-                self.right_clouds.add(c)    
-                sure.append(c) 
-        #print sure
-        #sys.exit()
-        for c in sure:
-            self.unsure_clouds.remove(c)
-
-    def printH(self):
-        print "start", self.start, "end", self.end
-        print "seq", self.seq
-        print "left_clouds", len(self.left_clouds)
-        print "right_clouds", len(self.right_clouds)
-        print "unsure_clouds", len(self.unsure_clouds)
-        print "\n"
-
-
-    def update_clouds(self, left_kmer, kmers):
-        right_kmer = tools.bool_reverse(left_kmer)
-        #print left_kmer, right_kmer
-        #print kmers
-        for key in kmers:
-            if tools.hamming_distance(key, left_kmer) < tools.hamming_distance(key, right_kmer):
-                self.left_clouds.update(kmers[key])
-            elif tools.hamming_distance(key, left_kmer) > tools.hamming_distance(key, right_kmer):
-                self.right_clouds.update(kmers[key])
-        #print self.left_clouds
-        #print self.right_clouds
-
-    def set_seq(self, seq):
-        self.seq = seq
-        self.len = len(seq)
-        self.end = self.start + self.len - 1
-
-    # left clouds should not have intersection with right
-    def check_clouds_intersection(self):    
-        if len( self.left_clouds.intersection(self.right_clouds) ) == 0:
-            return True
-        return False
-
-    def remove_intersection(self):
-        #print "cc"
-        inter_clouds = self.left_clouds.intersection(self.right_clouds)
-        #print "inter clouds", inter_clouds
-        #print "len inter clouds", len(inter_clouds)
-        if len(inter_clouds)>= 1:
-            #print "dd inter clouds", inter_clouds
-            self.left_clouds = self.left_clouds-inter_clouds
-            self.right_clouds = self.right_clouds-inter_clouds
-        return inter_clouds    
-    
+from libprism.local.prepare import verify_complexity, blocks_from_clouds, contigs_from_clouds
+import cloud
+import haplotype
 
 
 def print_aligned_region(start, end, clouds_at_index):
@@ -363,17 +32,29 @@ def print_aligned_region(start, end, clouds_at_index):
         rep = ['-' if x== pattern else x for x in a]
         #fout.write("%s %s\n" % (c.start, c.end))
         print("%s" % ''.join(map(str, rep)))     
-        #fout.write("%s\n" % ''.join( map(str, c[h1.start:h2.end+1]) ))
-        #sys.exit()
+        #fout.write("%s\n" % ''.join( map(str,rep) ))
         
 
 class DC(object):
 
+
+    def find_position_no_reads_span(self, start, end, clouds_at_index):
+        assert end > start
+        pos = []
+        for i in range(start, end-1):
+            j=i+1
+            ij = clouds_at_index[i].intersection(clouds_at_index[j])
+            #print i,j, "were spaned by ", len(ij), "reads"
+            if len(ij) == 0:
+                pos.append(i)
+        return pos        
+
     def generate_blocks(self, clouds_at_index):
 
         blocks = list() 
-        indexLen = len(clouds_at_index)
+        indexLen = len(clouds_at_index) - 1
         pos = self.find_position_no_reads_span(0, indexLen, clouds_at_index)
+        #sys.exit()
         l = len(pos)
         for i in range(l-1):
             j=i+1
@@ -383,7 +64,8 @@ class DC(object):
             blocks.append( (pos[-1], indexLen) )
         return blocks        
 
-    def __init__(self, k, data_start, data_end, all_clouds, clouds_at_index): # all_clouds, a cloud list
+    #def __init__(self, k, data_start, data_end, all_clouds, clouds_at_index, hmm): # all_clouds, a cloud list
+    def __init__(self, k, data_start, data_end, all_clouds, clouds_at_index, contigs_at_index): # all_clouds, a cloud list
         self.length = data_end - data_start + 1
         self.data_start = data_start # snp start no
         self.data_end = data_end     # snp end no     
@@ -395,7 +77,23 @@ class DC(object):
         # cloud is objective, libprism/local/cloud.py, cloud.name, cloud.seq(100-110), cloud[i], cloud[i:i+3]
         # cloud.start, cloud.end
         # clouds_at_index, dict, key is snp No., value is cloud who cover this SNP by 0/1 
-        # contigs_at_index = contigs_from_clouds(all_clouds, self.data_start, self.data_end)
+        # contigs_at_index, dict, key is snp np, value is cloud ID who span this SNP 0/1/-, ???
+        #contigs_at_index = contigs_from_clouds(all_clouds, self.data_start, self.data_end)  # bug, because a read multiple flag 0/16
+        #self.hmm = hmm
+        self.enumerate_length_threshold = 11 # trade-off between accuracy and time 
+
+        ''' 
+        print contigs_at_index[3220], len(clouds_at_index[3220])
+
+        for c in clouds_at_index[3220]:
+            print c.name
+            
+        print contigs_at_index[3221], len(clouds_at_index[3221])
+        print contigs_at_index[3222], len(clouds_at_index[3222])
+        print contigs_at_index[3223], len(clouds_at_index[3223])
+        sys.exit()
+        ''' 
+
 
         # optional   
         '''
@@ -405,9 +103,18 @@ class DC(object):
         
         self.set_k_mers(clouds_at_index)
         #self.blocks = blocks_from_clouds(all_clouds, clouds_at_index) # probhap generate block
-        self.blocks = self.generate_blocks(clouds_at_index)
+        #self.blocks = self.generate_blocks(clouds_at_index)
+        self.blocks = self.generate_blocks(contigs_at_index)
 
-        ''' 
+        fout = open("_block2", "w") 
+        fout.write( "block number: %d\n" % len(self.blocks) )
+        for block in self.blocks:
+            fout.write("%s %s\n" % (block[0], block[-1]) )
+
+
+        #sys.exit()
+        
+        '''
         uncovered_positions = set()
         # detect positions that have no coverage:
         for j in range(self.data_start, self.data_end+1):
@@ -415,25 +122,14 @@ class DC(object):
                 uncovered_positions.add(j)
 
         self.uncovered_positions = uncovered_positions
+        print "uncovered number", len(self.uncovered_positions)
+        print sorted(self.uncovered_positions)
+        sys.exit()
         '''
-
-    def run_dc_v1(self, clouds_at_index): # first version
-
-        haps = self.generate_haps_from_k_mers() # slide window, connect by overlap statify (1)bit-complement
-        #pre_start = -1
-        #pre_end = -1
-        self.merge_haps(haps) # using reads support two haps connect haplotype and overlap
-        self.fill_gap_phasing_unsure_clouds(haps) # clouds is reads
-                                                  # two step of fill gap
-                                                  # fill gap inside of hap: finish
-                                                  # fill gap between hap: not yet
-        ######################################################################                                          
-        #self.connect_by_unsure_clouds(haps) # using first round unsure clouds
-        return haps
 
     def enumerate_seq(self, start, end, clouds_at_index):
 
-        print "enumerate block, length:", end - start + 1 
+        print "enumerate seq, length:", end - start + 1 
         minMEC = 10000
         best_hap = []
         dis = end - start + 1
@@ -442,7 +138,7 @@ class DC(object):
         clouds = cloud.get_clouds(start, end, clouds_at_index)
         
         for seq in allPosSeq[0:l]:
-            h = Haplotype(start)        
+            h = haplotype.Haplotype(start)        
             h.set_seq(seq)
             MEC = self.calculate_MEC(h, clouds)
             if MEC < minMEC:
@@ -458,10 +154,10 @@ class DC(object):
             #print "enumerate block susscess"
             return best_hap
         else:
-            #print "enumerate block fail"
+            print "enumerate block more than 1"
             seqs = [] 
             for h in best_hap:
-                #print h.seq
+                print h.seq
                 seqs.append(h.seq)
             arr = np.sum(seqs, axis=0)    
             temp_seq = []
@@ -473,38 +169,123 @@ class DC(object):
                 else:
                     temp_seq.append(-1)
             #print temp_seq
-            h = Haplotype(start)        
+            h = haplotype.Haplotype(start)        
             h.set_seq(temp_seq)
             return [h]
-            
 
-    def run_dc_in_block(self, start, end, clouds_at_index):
+    '''
+    def dp(self, haps):
+        addHaps = []
+        l = len(haps)
+        for i in range(l-1):
 
-        haps = list() 
-        haps = self.generate_haps_from_k_mers(start, end)
+            h1 = haps[i] 
+            h2 = haps[i+1]
+            start = h1.end + 1 
+            end = h2.start - 1
+            if end <= start + 10:
+                continue
+            b = range(start, end+1) 
+            h = haplotype.Haplotye(start)
+            s = run_viterbi(b)
+    '''        
 
-        #return haps  
-         
-        print "after generate haps from kmers ", len(haps)
-        if len(haps) == 0:
+    def generate_distribution(self, haps):
+        
+        l = len(haps)
+        dis = {}
+        unphased = 0
+        for i in range(l-1):
+            h1 = haps[i] 
+            h2 = haps[i+1]
+            d = h2.start - 1 - h1.end
+            if d >= 10:
+                unphased += d
+            if d not in dis:
+                dis[d] = 1
+            else:
+                dis[d] += 1
+        fout = open("distance_distribution", "w")
+        for (d, count) in sorted(dis.items()):
+            fout.write("%s %s\n" % (d, count))
+
+        fout.write("%s %.2f\n" % (unphased, float(unphased)/self.length*100))
+        fout.close()
+
+
+ 
+    def run_dc_in_block(self, start, end, clouds_at_index): 
+        label = 2
+        haps = list()
+        while (len(haps) == 0 and label >= 1):
+            print "check bit by label", label
+            haps = self.generate_haps_from_k_mers(start, end, label)
+            label -= 1 # loose bit-complement constraint
+ 
+        print "after generate haps from kmers, haps number ", len(haps)
+        hapsNum = len(haps)
+        if hapsNum == 0:
             haps = self.enumerate_seq(start, end, clouds_at_index)
-            if len(haps) > 0:    
-                print "block no haps, so enumerate:", haps[0].start, haps[0].end, haps[0].seq
-            return haps    
-        elif len(haps) == 1:
-            print haps[0].start, haps[0].end, haps[0].seq
-            #haps[0].fill_gap_pre(start)
-            #haps[0].fill_gap_next(end)
-            return haps
-        else:
-            #print_aligned_region(start, end, clouds_at_index)
+        elif hapsNum >= 1:
+            #self.dp(haps)
+            print "old haps number", len(haps)
+            haps = self.generate_newhaps_loose_bit_constraint_locally(haps, start, end, label)
+            print "new haps number", len(haps)
+        # optial 
+        if haps[0].start - 1 > start:   # enumerate start
+            haps = self.enumerate_seq(start, haps[0].start-1, clouds_at_index) + haps
+        if haps[-1].end + 1 < end:      # enumerate end
+            haps = haps + self.enumerate_seq(haps[-1].end+1, end, clouds_at_index)
+        
+        if len(haps) > 1:
             self.enumerate_gap_between_haps(haps, clouds_at_index)
-            #print "after enumerate gap ", len(haps)
-            #self.fill_gap_between_haps(haps)
-            #print "after fill gaps ", len(haps)
-            #haps[0].fill_gap_pre(start)
-            #haps[-1].fill_gap_next(end)
-            return haps
+        print "block region", start, end, "has", len(haps), "haplotype segements"   
+        return haps
+
+    def generate_newhaps_loose_bit_constraint_locally(self, haps, start, end, label):
+        
+        print "old haps in subfunction, number", len(haps)
+        '''
+        for h in haps:
+            print h.start, h.end
+        '''    
+        subHaps = {}
+        hapsNum = len(haps)
+        for i in range(hapsNum+1): 
+            s = start if i==0 else haps[i-1].end + 1   
+            e = end if i==hapsNum else haps[i].start - 1
+            subLabel = label
+            hs = list()
+            if (e - s + 1 >= self.enumerate_length_threshold) and subLabel >= 1: # e>s, error rate high, 
+                while (len(hs) == 0 and subLabel >= 1):
+                    hs = self.generate_haps_from_k_mers(s, e, subLabel)
+                    subLabel -= 1
+                if len(hs) > 0:
+                    subHaps[i] = hs
+        
+        if len(subHaps) > 0:    
+            '''
+            print "subHaps"
+            for k in subHaps:
+                for h in subHaps[k]:
+                    print h.start, h.end
+            '''     
+            newHaps = list()        
+            for i in range(hapsNum+1):
+                if i in subHaps:
+                    newHaps.extend(subHaps[i])
+                if i < hapsNum:
+                    newHaps.append(haps[i])
+            
+            print "new haps in subfunction, number", len(newHaps)
+            '''
+            for h in newHaps:
+                print h.start, h.end
+            '''
+            haps = newHaps        
+        return haps
+
+
         
 
     def run_dc(self, clouds_at_index): # 12, Dec
@@ -514,6 +295,13 @@ class DC(object):
             #print block
         #sys.exit() 
 
+        '''
+        print_aligned_region(3695, 3705, clouds_at_index)
+        print_aligned_region(8380, 8390, clouds_at_index)
+        print_aligned_region(14955, 14965, clouds_at_index)
+        #print_aligned_region(3670, 3680, clouds_at_index)
+        sys.exit()
+        '''
         allHaps = []
         count = 1
         print "There are", len(self.blocks), "blocks"
@@ -521,74 +309,32 @@ class DC(object):
             print "phasing block: ", count, ", region ", block[0] , block[-1]
             allHaps.extend(self.run_dc_in_block(block[0], block[-1], clouds_at_index))
             count += 1
- 
+
+        self.generate_distribution(allHaps)
+        #sys.exit()
+
+
+        print "before finall enmuerate ", len(allHaps)    
         self.enumerate_gap_between_haps(allHaps, clouds_at_index) # only need work for between block, need to updata
-        allHaps[0].fill_gap_pre(-1)
-        allHaps[-1].fill_gap_next(300000000)
-        return allHaps  
+                                                                  # for two consective hap, local region , two MEC
+                                                                  # longer , maybe have MEC
+                                                                  
+        print "after finall enmuerate ", len(allHaps)    
 
-
-    def run_dc_v3(self, clouds_at_index): # 6, Dec
-
-        haps = self.generate_haps_from_k_mers() # slide window, connect by overlap statify (1)bit-complement
-
-        # write
-        
-        fout1 = open("step1.out" , "w")
-        for i, block in enumerate(haps):
-            fout1.write("BLOCK: offset: %d len: %d positions: %d\n" % (block.start, block.len, -1))
+        fout1 = open("hap.out" , "w")
+        for i, block in enumerate(allHaps):
+            fout1.write( "%d %d\n" % (block.start, block.end) )
+            '''
             for k,y in enumerate(block.seq):
                 j = block.start + k
                 if y != -1:
                     fout1.write("%d\t%d\t%d\t\n" % (j, y, tools.int_reverse(y)))
             fout1.write("********\n")
+            '''
         fout1.close()
-        
 
+        return allHaps  
 
-
-        '''
-        self.add_haps(haps)
-        fout2 = open("add.out" , "w")
-        for i, block in enumerate(haps):
-            fout2.write("BLOCK: offset: %d len: %d positions: %d\n" % (block.start, block.len, -1))
-            for k,y in enumerate(block.seq):
-                j = block.start + k
-                if y != -1:
-                    fout2.write("%d\t%d\t%d\t\n" % (j, y, tools.int_reverse(y)))
-            fout2.write("********\n")
-        fout2.close()
-        #sys.exit()
-        '''  
-
-        #enumerate
-        l = len(haps)
-        print "before enumerate, number of haplotype", l
-        self.enumerate_gap_between_haps(haps, clouds_at_index)
-
-        
-        fout2 = open("enumerate.out" , "w")
-        for i, block in enumerate(haps):
-            fout2.write("BLOCK: offset: %d len: %d positions: %d\n" % (block.start, block.len, -1))
-            for k,y in enumerate(block.seq):
-                j = block.start + k
-                if y != -1:
-                    fout2.write("%d\t%d\t%d\t\n" % (j, y, tools.int_reverse(y)))
-            fout2.write("********\n")
-        fout2.close()
-        
-        
-        self.fill_gap_between_haps(haps)
-        haps[0].fill_gap_pre(-1)
-        print "fill last haps "
-        haps[-1].fill_gap_next(300000000)
-        for h in haps:
-            h.fill_gap_inside()
-
-        l = len(haps)
-        print "after fill gap, number of haplotype", l
-
-        return haps
 
     def enumerate_gap_between_haps(self , haps, clouds_at_index):
 
@@ -607,61 +353,15 @@ class DC(object):
                 break
         print "after enumerate gap bwtween haps, number of haplotype", len(haps)
 
-    
-    def add_haps(self , haps):
-
-        print "add haps" 
-        l = len(haps)
-        add_haps = list()
-        i = 0
-        #while True:
-        while (l>=2):
-            dis =  haps[i+1].start - haps[i].end - 1 
-            if dis >= 10 and dis < 20:
-                h = Haplotype(haps[i].end + dis/2)
-                h.set_seq([1])
-                haps.insert(i+1, h)
-                print "add", i+1, h.start
-            elif dis >= 20:
-                h = Haplotype(haps[i].end + 10)
-                h.set_seq([1])
-                haps.insert(i+1, h)
-                print "add", i+1, h.start
-            l = len(haps) - i
-            i += 1
-            if i+1 >= len(haps):
-                break
-
-    '''  
-    def find_position_no_reads_span(self, h1, h2, clouds_at_index): # between two haplotype
-        assert h2.start > h1.end
-        pos = []
-
-        for i in range(h1.end, h2.start):
-            j=i+1
-
-            #for c in clouds_at_index[i]:
-                #print c[i]
-            #sys.exit()    
-            ij = clouds_at_index[i].intersection(clouds_at_index[j])
-            print i,j, "were spaned by ", len(ij), "reads"
-            if len(ij) == 0:
-                pos.append(i)
-        return pos        
-    '''    
-    
-    def find_position_no_reads_span(self, start, end, clouds_at_index):
-        assert end > start
-        pos = []
-
-        for i in range(start, end-1):
-            j=i+1
-
-            ij = clouds_at_index[i].intersection(clouds_at_index[j])
-            #print i,j, "were spaned by ", len(ij), "reads"
-            if len(ij) == 0:
-                pos.append(i)
-        return pos        
+    ''' 
+    def enumerate_clouds(start, end, cloudsMid):
+        leftClouds = []
+        rightClouds = []
+        cloudsNum = len(cloudsMid)
+        for i in range(0, pow(2, cloudsNum-1)):
+            # unfinish
+            #
+    '''       
 
        
     def enumerate_two_haps(self, h1, h2, clouds_at_index, fout):
@@ -679,8 +379,35 @@ class DC(object):
         clouds = cloud.get_clouds(h1.start, h2.end, clouds_at_index)
         #aligned_detail.append(c[h1.start : h2.end+1])
         
-        if dis >= 21: # need improve
+        if dis >= self.enumerate_length_threshold: # need improve
             print "dis is", dis, "too long to enumerate"
+            print len(clouds)
+
+            cloudsMid = list(cloud.get_clouds(h1.end+1, h2.start-1, clouds_at_index))
+            cloudsNum = len(cloudsMid)
+            '''               
+            if cloudsNum < 10:
+                print "mid clouds"
+                for c in cloudsMid:
+                    print c.start, c.end, c.seq
+                    
+                h = enumrate_clouds(h1.end+1, h2.start-1, cloudsMid)
+                
+                print h1.end+1, h2.start-1
+                #temp_seq = cloudsMid[0][h1.end+1 : h2.start-1]
+                for i in range(1, cloudsNum):
+                    #if is_bool_equal(cloudsMid[i][h1.end+1 : h2.start-1]) or is_bool_reverse2()   
+                sys.exit() 
+            '''    
+
+
+            '''
+            b = range(h1.end+1, h2.start-1)
+            h = self.hmm.run_viterbi(b)
+            print "after run viterbi"
+            print h
+            sys.exit()
+            '''
             return False
         
         print h1.start, h2.end, "this region supported reads number", len(clouds)    
@@ -693,7 +420,7 @@ class DC(object):
                 elif i == 1:
                     temp_seq = h1.seq + seq + tools.list_reverse(h2.seq) # debug maybe h1.seq + seq + tools.reverse(h2.seq)
 
-                h3 = Haplotype(h1.start)
+                h3 = haplotype.Haplotype(h1.start)
                 h3.set_seq(temp_seq)
                 MEC = self.calculate_MEC(h3, clouds)
                 if MEC < minMEC:
@@ -721,20 +448,9 @@ class DC(object):
 
 
             idx = map(operator.eq, best_hap[0].seq, best_hap[1].seq )
-            ###########
-            #000100
-            #000000
-            #TTTFTT
-            ###########
             unsure_pos = idx.index(False)
             idxF = idx.count(False)
-            if idxF == 1 or idxF < len(idx)*0.1:
-                temp_seq = best_hap[0].seq[ : unsure_pos]
-                temp_seq = temp_seq + [-1]
-                temp_seq = temp_seq + best_hap[0].seq[unsure_pos+1 : ]
-                h1.set_seq(temp_seq)
-                print "2 enumerate", h1.seq
-                return True
+
 
             # two situations
             ###########
@@ -754,7 +470,18 @@ class DC(object):
                 print "3 enumerate", h1.seq, h1.start
                 print "3 enumerate", h2.seq, h2.start
                 return False
-
+            ###########
+            #000100
+            #000000
+            #TTTFTT
+            ###########
+            if idxF == 1 or idxF <= min(len(idx)*0.1, 2):
+                temp_seq = best_hap[0].seq[ : unsure_pos]
+                temp_seq = temp_seq + [-1]
+                temp_seq = temp_seq + best_hap[0].seq[unsure_pos+1 : ]
+                h1.set_seq(temp_seq)
+                print "2 enumerate", h1.seq
+                return True
            
             print "enumerate between gaps, unconsider case:"
             for h in best_hap:
@@ -768,17 +495,81 @@ class DC(object):
             return False
         else:
             print "enumerate between gaps, more than two MEC"
+            #fout.write()
+            start = best_hap[0].start
+            end = best_hap[0].end + 1
+            print best_hap[0].seq, best_hap[0].start, best_hap[0].end
+
+            ##########
+            #case 1
+            ########## 
+            seqs = [] 
+            for h in best_hap:
+                print h.seq
+                seqs.append(h.seq)
+            arr = np.sum(seqs, axis=0)    
+            temp_seq = []
+            count = 0
+            for ele in arr:
+                if ele == 0:
+                    temp_seq.append(0)
+                elif ele == l:
+                    temp_seq.append(1)
+                else:
+                    temp_seq.append(-1)
+                    count += 1
+            print temp_seq, float(count)/len(best_hap[0].seq)
+            #if (count == 1 or (count ==2 and float(count)/len(best_hap[0].seq)<0.05) ):
+            #if (count == 1 or  float(count)/len(best_hap[0].seq)<0.07) :
+            if (temp_seq[0] != -1 and temp_seq[-1] != -1):
+                h1.set_seq(temp_seq)
+                return True
+
+            #########
+            #case 2
+            #########
+            for i in range(h2.start-1, h1.end-1, -1):
+                temp_seq = best_hap[0][start:i]
+                #print "temp_seq", temp_seq
+                for j in range(1,l):
+                    #print best_hap[j][start:i]
+                    if temp_seq == best_hap[j][start:i] or tools.is_bool_reverse2(temp_seq, best_hap[j][start:i]):
+                        continue
+                    else:
+                        break
+                if j >= l-1 and (temp_seq == best_hap[-1][start:i] or tools.is_bool_reverse2(temp_seq, best_hap[-1][start:i]) ):
+                    #print i
+                    break
+            #print "left seq"
+            #print temp_seq # this right seq
+            h1.set_seq(temp_seq)
+
+            for i in range(h1.end+1, h2.start+1):
+                temp_seq = best_hap[0][i:end]
+                #print "temp_seq", temp_seq
+                for j in range(1,l):
+                    #print best_hap[j][i:end]
+                    if temp_seq == best_hap[j][i:end] or tools.is_bool_reverse2(temp_seq, best_hap[j][i:end]):
+                        continue
+                    else:
+                        break
+                if j >= l-1 and (temp_seq == best_hap[-1][i:end] or tools.is_bool_reverse2(temp_seq, best_hap[-1][i:end]) ):
+                    #print i
+                    break
+            #print "right seq"
+            #print temp_seq # this right seq
+            h2.start = i
+            h2.set_seq(temp_seq)
+            print h1.seq, h2.seq
             return False
             
-
-     
         return False
 
 
 
     def calculate_MEC(self, h1, clouds):
         MEC = 0
-        h2 = Haplotype(h1.start)
+        h2 = haplotype.Haplotype(h1.start)
         h2.set_seq(tools.list_reverse(h1.seq))
         #print h1.seq, h2.seq 
         for c in clouds:
@@ -801,53 +592,6 @@ class DC(object):
         #print "MEC:", MEC    
         return MEC 
         
-
- 
-            
-        
-        
-
-
-    def run_dc_v2(self, clouds_at_index): # second version: 5, Dec, new version pipeline of dc
-
-        haps = self.generate_haps_from_k_mers() # slide window, connect by overlap statify (1)bit-complement
-       
-        fout1 = open("step1", "w")
-        for h in haps:
-             fout1.write("%s %s %s\n"   % (h.start, h.end, h.seq))
-        
-        #"before merge no inside gap"    
-        self.merge_haps(haps) # using reads support two haps connect haplotype and overlap
-
-        fout2 = open("step2", "w") 
-        for h in haps:
-            h.fill_gap_inside()
-            fout2.write("%s %s %s\n"   % (h.start, h.end, h.seq))
-            
-
-        # check haps is sorted or not
-        i = 0
-        l = len(haps)
-        while i+1 < l:
-            h1 = haps[i]
-            h2 = haps[i+1]
-            assert h1.start < h2.start
-            i+=1
- 
-        self.fill_gap_between_haps(haps)
-        haps[0].fill_gap_pre(-1)
-        print "fill last haps "
-        #print len(haps[-1].left_clouds)
-        #print len(haps[-1].right_clouds)
-        #print len(haps[-1].unsure_clouds)
-        haps[-1].fill_gap_next(300000000)
-        for h in haps:
-            h.fill_gap_inside()
-            #print "check haps again is sorted or not", h.start, h.end    
-        return haps
-
-       
-
         
     def fill_gap_phasing_unsure_clouds(self, haps):
 
@@ -868,9 +612,6 @@ class DC(object):
             print "after deal unsure_clouds"
             h.printH()
 
-    
-
-
 
     def pick_snp(self, clouds_at_index): 
         # some snp all have 0, first round ignore them
@@ -890,7 +631,6 @@ class DC(object):
                     break
         print "good snp", len(good_snp)
         return good_snp
-
 
 
     def connect_by_unsure_clouds(self, haps):  # phasing unsure clouds and try connect haplotype
@@ -960,62 +700,30 @@ class DC(object):
                     self.k_mers_01[j].append(key)
 
 
-     
-
-
-
-    def generate_haps_from_k_mers(self, start, end):  # need to updata, different coverage, different fix_rule
+    def generate_haps_from_k_mers(self, start, end, label):  # need to updata, different coverage, different fix_rule
         
         haps = list()
         temp_seq = list()
         #for j in range(self.data_start, self.data_end+1-self.k):
         for j in range(start, min(end + 2 - self.k, 22799)): 
-            curr_k_mer = self.k_mers_01[j]
-            len_k_mer = len(curr_k_mer)
-            #print j, curr_k_mer
-            cur_cov = 0
-            for k in self.k_mers[j]:
-                #print "kmer detail", k, len(self.k_mers[j][k])
-                cur_cov += len(self.k_mers[j][k])
-            ############################################### case study
-            #some case left, first and third bit-complement
-            #second = first
-            ############################################
-            # very low coverage like 3
-            #if ( ( len_k_mer >= 2 and tools.is_bool_reverse(curr_k_mer[0], curr_k_mer[1]) ) or len_k_mer == 1 or 
-                #( len_k_mer==3 and  (tools.is_bool_reverse(curr_k_mer[0], curr_k_mer[1]) or 
-                #                     tools.is_bool_reverse(curr_k_mer[0], curr_k_mer[2])) ) ):
-            
-            
-            # most strict
-            '''
-            if len_k_mer >= 2:
-                kmer1cov = len(self.k_mers[j][curr_k_mer[0]])
-                kmer2cov = len(self.k_mers[j][curr_k_mer[1]])
-            
-            if ( len_k_mer >= 2 and tools.is_bool_reverse(curr_k_mer[0], curr_k_mer[1]) and kmer1cov + kmer2cov > 0.5*cur_cov ):
-                #print kmer1cov
-                #print kmer2cov
-                #print "cur cov", cur_cov
-                # for pacbio and nanopore, should I use different para
-            '''
-
-            #a bit higher coverage, need improve 
-            if ( len_k_mer >= 2 and tools.is_bool_reverse(curr_k_mer[0], curr_k_mer[1])  ):
+            boolKmers = self.k_mers_01[j]
+            #print j, boolKmers
+    
+            if self.check_bit_complement(boolKmers, self.k_mers[j], label):
                 if len(temp_seq) == 0:
-                    h = Haplotype(j) 
-                    temp_seq.extend(curr_k_mer[0])
-                    h.update_clouds(curr_k_mer[0], self.k_mers[j])
-                elif temp_seq[-self.k+1:] == list(curr_k_mer[0])[:-1]: # may have reads conflict 
-                    temp_seq.append(curr_k_mer[0][-1])
-                    h.update_clouds(curr_k_mer[0], self.k_mers[j])
-                elif tools.is_bool_reverse( temp_seq[-self.k+1:], curr_k_mer[0][:-1] ):
-                    temp_seq.append( tools.int_reverse( curr_k_mer[0][-1] ) )
-                    h.update_clouds( tools.bool_reverse( curr_k_mer[0] ), self.k_mers[j] )
+                    h = haplotype.Haplotype(j) 
+                    temp_seq.extend(boolKmers[0])
+                    h.update_clouds(boolKmers[0], self.k_mers[j])
+                elif temp_seq[-self.k+1:] == list(boolKmers[0])[:-1]: # may have reads conflict 
+                    temp_seq.append(boolKmers[0][-1])
+                    h.update_clouds(boolKmers[0], self.k_mers[j])
+                elif tools.is_bool_reverse( temp_seq[-self.k+1:], boolKmers[0][:-1] ):
+                    temp_seq.append( tools.int_reverse( boolKmers[0][-1] ) )
+                    h.update_clouds( tools.bool_reverse( boolKmers[0] ), self.k_mers[j] )
                 else:
-                    print j, "break type 2, the end of haplotype is not consistent"
+                    print j, "kmer break type 2, not satisfy consistency"
                     #print temp_seq
-                    #print temp_seq[-self.k+1:], list(curr_k_mer[0])[:-1]
+                    #print temp_seq[-self.k+1:], list(boolKmers[0])[:-1]
                     assert len(temp_seq) != 0
                     if len(temp_seq) != 0:
                         h.set_seq(temp_seq)
@@ -1026,12 +734,12 @@ class DC(object):
                     h.set_seq(temp_seq)
                     haps.append(h)
                     temp_seq = list()
-                if len_k_mer == 0:
-                    print j, "break type 3, no reads cover k_mer"
+                if len(boolKmers) == 0:
+                    print j, "kmer break type 3, no reads cover all position in k_mer"
                     #print "check no reads cover ", self.k_mers_01[j]
                     #print "check no reads cover ", self.k_mers[j].keys()
                 else:
-                    print j, "break type 1, first and second most frequency k_mer not bit-complement"
+                    print j, "kmer break type 1, not satisfy bit-complement"
                     #print self.k_mers_01[j]
                     #print self.k_mers[j].keys()
         if len(temp_seq) != 0:
@@ -1046,8 +754,50 @@ class DC(object):
                 h.unsure_clouds.update( h.remove_intersection() )
 
         return haps  
-
     
+    ############################################### case study
+    #some case left, first and third bit-complement
+    #second = first
+    ############################################
+    # very low coverage like 3
+    
+    def check_bit_complement(self, boolKmers, kmers, label): # most loose
+
+        lenKmer = len(boolKmers) # bool_k_mers a list of kmer which not include -1
+        if label == 1:
+            if ( ( lenKmer >= 2 and tools.is_bool_reverse( boolKmers[0], boolKmers[1] ) ) or 
+                    lenKmer == 1 or 
+                    ( lenKmer==3 and  (tools.is_bool_reverse(boolKmers[0], boolKmers[1]) or 
+                                         tools.is_bool_reverse(boolKmers[0], boolKmers[2])) ) ):
+                return True
+            return False
+
+        #def check_bit_complement2(self, boolKmers, kmers):
+        if label == 2:
+            #a bit higher coverage, need improve 
+            if ( lenKmer >= 2 and tools.is_bool_reverse( boolKmers[0], boolKmers[1])  ):
+                return True
+            return False
+
+        #def check_bit_complement3(self, boolKmers, kmers): # most strict 
+        if label == 3:
+            curCov = 0
+            for k in kmers:
+                #print "kmer detail", k, len(self.k_mers[j][k])
+                curCov += len(kmers[k])
+            if lenKmer >= 2:
+                kmer1cov = len( kmers[boolKmers[0]] )
+                kmer2cov = len( kmers[boolKmers[1]] )
+                
+            if ( lenKmer >= 2 and tools.is_bool_reverse( boolKmers[0], boolKmers[1]) and kmer1cov + kmer2cov > 0.5*curCov ):
+                    #print kmer1cov
+                    #print kmer2cov
+                    #print "cur cov", cur_cov
+                    # for pacbio and nanopore, should I use different para
+                    return True
+            return False    
+            
+
     def fill_gap_between_haps(self, haps):
         
         l = len(haps)
