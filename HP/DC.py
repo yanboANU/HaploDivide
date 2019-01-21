@@ -82,37 +82,29 @@ class DC(object):
         #self.hmm = hmm
         self.enumerate_length_threshold = 5 # trade-off between accuracy and time 
 
+        self.contigs_at_index = contigs_at_index  
         ''' 
         print contigs_at_index[3220], len(clouds_at_index[3220])
-
         for c in clouds_at_index[3220]:
             print c.name
-            
-        print contigs_at_index[3221], len(clouds_at_index[3221])
-        print contigs_at_index[3222], len(clouds_at_index[3222])
         print contigs_at_index[3223], len(clouds_at_index[3223])
         sys.exit()
         ''' 
-
-
         # optional   
         '''
         good_snps = self.pick_snp(clouds_at_index)
         self.set_k_mers_only_for_good_snps(clouds_at_index, good_snps)
         '''
-        
         self.set_k_mers(clouds_at_index)
         #self.blocks = blocks_from_clouds(all_clouds, clouds_at_index) # probhap generate block
         #self.blocks = self.generate_blocks(clouds_at_index)
         self.blocks = self.generate_blocks(contigs_at_index)
-
+        ''' 
         fout = open("_block2", "w") 
         fout.write( "block number: %d\n" % len(self.blocks) )
         for block in self.blocks:
             fout.write("%s %s\n" % (block[0], block[-1]) )
 
-
-        '''
         uncovered_positions = set()
         # detect positions that have no coverage:
         for j in range(self.data_start, self.data_end+1):
@@ -126,51 +118,17 @@ class DC(object):
         '''
 
     def enumerate_seq(self, start, end, clouds_at_index):
-
-        print "enumerate seq, length:", end - start + 1 
-        minMEC = 10000
-        bestHaps = []
+ 
         dis = end - start + 1
-
+        haps = list()
         if dis >= self.enumerate_length_threshold: # need improve
             return haps
         allPosSeq = tools.enumerate_01_list(dis)    
         l = len(allPosSeq)/2
-        haps = list()
-         
-        for seq in allPosSeq[0:l]:
-            h = haplotype.Haplotype(start)        
-            h.set_seq(seq)
-            MEC = self.updata_clouds_support_and_calculate_MEC(h, clouds_at_index)
-            if MEC < minMEC:
-                minMEC = MEC
-                bestHaps = []
-                bestHaps.append(h)
-            elif MEC == minMEC:
-                bestHaps.append(h)
-        l = len(bestHaps)
-        if l == 1:
-            print "enumerate block susscess"
-            return bestHaps  # clouds keep 
-        else:
-            print "enumerate seq more than 1"
-            seqs = [] 
-            segments = []
-            for h in bestHaps:
-                print h.seq, 
-                seqs.append(h.seq)
-            print "running function divide condense"    
-            segments = tools.divide_condense_mutiple_list(seqs, segments, start)
-            l = len(segments)
-            for i in range(l):
-               a = [ -1 if e==-2 else e for e in segments[i][1] ]
-               h = haplotype.Haplotype(segments[i][0])        
-               h.set_seq(a) 
-               h.assign_clouds(clouds_at_index) # updata clouds
-               if len(a) - a.count(-1) >= 2:  
-                   haps.append(h)
-            return haps   
-
+        
+        bestHaps, haps = self.find_minimal_MEC([], allPosSeq[0:l], [], start, clouds_at_index)  
+        return haps
+    
     def enumerate_block_prefix(self, start, firstH, clouds_at_index):
         
         dis = firstH.start - start
@@ -179,43 +137,9 @@ class DC(object):
             haps.append(firstH)
             return haps
         allPosSeq = tools.enumerate_01_list(dis)    
-        minMEC = 10000
-        for seq in allPosSeq:
-            tempSeq = seq + firstH.seq
-            newH = haplotype.Haplotype(start)        
-            newH.set_seq(tempSeq)
-            MEC = self.updata_clouds_support_and_calculate_MEC(newH, clouds_at_index)
-            if MEC < minMEC:
-                minMEC = MEC
-                bestHaps = []
-                bestHaps.append(newH)
-            elif MEC == minMEC:
-                bestHaps.append(newH)
-        l = len(bestHaps)
-        if l == 1:
-            print "enumerate prefix susscess"
-            return bestHaps # clouds updata in updata_clouds_support_and_calculate_MEC
-        else:
-            print "enumerate prefix seq more than 1"
-            seqs = [] 
-            segments = []
-            for h in bestHaps:
-                print h.seq
-                seqs.append(h.seq)
-            #sys.exit()
-            print "running function divide condense"    
-            segments = tools.divide_condense_mutiple_list(seqs, segments, start)
-            #print segments
-            l = len(segments)
-            for i in range(l):
-               a = [ -1 if e==-2 else e for e in segments[i][1] ]
-               h = haplotype.Haplotype(segments[i][0])        
-               h.set_seq(a) # cloud not updata
-               h.assign_clouds(clouds_at_index)
-               if len(a) - a.count(-1) >= 2:  
-                   haps.append(h)
-            return haps   
 
+        bestHaps, haps = self.find_minimal_MEC([], allPosSeq , firstH.seq, start, clouds_at_index)   
+        return haps
 
     def enumerate_block_suffix(self, lastH, end, clouds_at_index):
         dis = end - lastH.end
@@ -225,13 +149,22 @@ class DC(object):
             return haps
         start = lastH.start
         allPosSeq = tools.enumerate_01_list(dis)   
-
         minMEC = 10000
+
+        bestHaps, haps = self.find_minimal_MEC(lastH.seq, allPosSeq, [], start, clouds_at_index)     
+        return haps
+
+
+
+    def find_minimal_MEC(self, prefix, allPosSeq, suffix, start, clouds_at_index):
+        
+        minMEC = 1000000
         for seq in allPosSeq:
-            tempSeq = lastH.seq + seq
+            tempSeq = prefix + seq + suffix
             newH = haplotype.Haplotype(start)        
             newH.set_seq(tempSeq)
-            MEC = self.updata_clouds_support_and_calculate_MEC(newH, clouds_at_index)
+            #MEC = self.updata_clouds_support_and_calculate_MEC(newH, clouds_at_index)
+            MEC = newH.assign_clouds(clouds_at_index)
             if MEC < minMEC:
                 minMEC = MEC
                 bestHaps = []
@@ -240,18 +173,18 @@ class DC(object):
                 bestHaps.append(newH)
         l = len(bestHaps)
         if l == 1:
-            print "enumerate suffix susscess"
-            return bestHaps
+            #print "find minimal MEC susscess"
+            return bestHaps, bestHaps # clouds updata in updata_clouds_support_and_calculate_MEC
         else:
-            print "enumerate suffix seq more than 1"
+            haps = list()
+            #print "minimal MEC more than 1"
             seqs = [] 
             segments = []
             for h in bestHaps:
                 print h.seq
                 seqs.append(h.seq)
-            print "running function divide condense"    
+            #print "running function divide condense"    
             segments = tools.divide_condense_mutiple_list(seqs, segments, start)
-            #print segments
             l = len(segments)
             for i in range(l):
                a = [ -1 if e==-2 else e for e in segments[i][1] ]
@@ -260,26 +193,8 @@ class DC(object):
                h.assign_clouds(clouds_at_index)
                if len(a) - a.count(-1) >= 2:  
                    haps.append(h)
-            return haps   
+            return bestHaps, haps   
 
-
-
-    '''
-    def dp(self, haps):
-        addHaps = []
-        l = len(haps)
-        for i in range(l-1):
-
-            h1 = haps[i] 
-            h2 = haps[i+1]
-            start = h1.end + 1 
-            end = h2.start - 1
-            if end <= start + 10:
-                continue
-            b = range(start, end+1) 
-            h = haplotype.Haplotye(start)
-            s = run_viterbi(b)
-    '''        
 
     def generate_distribution(self, haps): # distance distribution
         
@@ -310,11 +225,11 @@ class DC(object):
         label = 2
         haps = list()
         while (len(haps) == 0 and label >= 1):
-            print "check bit by label", label
+            #print "check bit by label", label
             haps = self.generate_haps_from_k_mers(start, end, label, clouds_at_index)
             label -= 1 # loose bit-complement constraint
  
-        print "after generate haps from kmers, haps number ", len(haps)
+        #print "after generate haps from kmers, haps number ", len(haps)
         hapsNum = len(haps)
         if hapsNum == 0:
             haps = self.enumerate_seq(start, end, clouds_at_index)
@@ -323,40 +238,33 @@ class DC(object):
 
         #enumerate prefix and subfix
         if len(haps) >= 1:
-            #for h in haps:
-                #print h.start, h.end, h.seq
             prefixHaps = self.enumerate_block_prefix(start, haps[0], clouds_at_index) 
             haps.remove(haps[0])
             haps = prefixHaps + haps
             suffixHaps = self.enumerate_block_suffix(haps[-1], end, clouds_at_index)
             haps.remove(haps[-1])
             haps = haps + suffixHaps
-            #print "after enumerate prefix and subfix"
-            #for h in haps:
-                #print h.start, h.end, h.seq 
 
         #enumerate gaps        
         if len(haps) > 1: 
-            a = 1000000
+            a = len(haps) + 1
             count = 1
             while len(haps) < a:
                 a = len(haps)
-                print "merge count", count
+                #print "merge count", count
+                #enumerate_gap_between_haps/enumerate_gap_among_haps
                 haps = self.enumerate_gap_among_haps2(haps, clouds_at_index)
-                #haps = self.enumerate_gap_between_haps(haps, clouds_at_index)
                 count += 1
-                 
-            #haps = self.enumerate_gap_between_haps(haps, clouds_at_index)
-            #haps = self.enumerate_gap_among_haps2(haps, clouds_at_index)  
-            #haps = self.enumerate_gap_between_haps(haps, clouds_at_index)
-            #haps = self.enumerate_gap_among_haps2(haps, clouds_at_index)
-            #haps = self.enumerate_gap_between_haps(haps, clouds_at_index)
-        print "block region", start, end, "has", len(haps), "haplotype segements"   
+        #print "block region", start, end, "has", len(haps), "haplotype segements"   
         return haps
 
+    # h1     h2
+    #    h1'
+    # loost bit may can connect h1 h1' h2
+    # now the code report 3 haps
     def generate_newhaps_loose_bit_constraint_locally(self, haps, start, end, label, clouds_at_index):
         
-        print "old haps in subfunction, number", len(haps)
+        #print "old haps in subfunction, number", len(haps)
         subHaps = {}
         hapsNum = len(haps)
         for i in range(hapsNum+1): 
@@ -378,23 +286,20 @@ class DC(object):
                     newHaps.extend(subHaps[i])
                 if i < hapsNum:
                     newHaps.append(haps[i]) 
-            print "new haps in subfunction, number", len(newHaps)
+            #print "new haps in subfunction, number", len(newHaps)
             haps = newHaps        
         return haps
-
-
         
 
     def run_dc(self, clouds_at_index): # 12, Dec
 
-        #print self.find_position_no_reads_span(0, len(clouds_at_index), clouds_at_index)
-        #for block in self.blocks:
-            #print block
-        #sys.exit() 
-        #print_aligned_region(8218, 8230, clouds_at_index)
-        #print_aligned_region(17885, 17895, clouds_at_index)
-        #sys.exit()
-        
+        '''
+        print_aligned_region(8813, 8824, clouds_at_index)
+        print_aligned_region(15693, 15704, clouds_at_index)
+        print_aligned_region(16495, 16505, clouds_at_index)
+        print_aligned_region(20241, 20251, clouds_at_index)
+        sys.exit()        
+        '''
         allHaps = []
         count = 1
         print "There are", len(self.blocks), "blocks"
@@ -402,126 +307,23 @@ class DC(object):
             print "phasing block: ", count, ", region ", block[0] , block[-1]
             allHaps.extend(self.run_dc_in_block(block[0], block[-1], clouds_at_index))
             count += 1
-
-        #self.generate_distribution(allHaps)
-        #sys.exit()
-        #print "before finall enmuerate ", len(allHaps)    
-        #allHaps = self.enumerate_gap_between_haps(allHaps, clouds_at_index) # only need work for between block, need to updata
-                                                                  # for two consective hap, local region , two MEC
-                                                                  # longer , maybe have MEC
-                                                                  
-        '''
-        fout1 = open("hap.out" , "w")
-        for i, block in enumerate(allHaps):
-            fout1.write( "%d %d\n" % (block.start, block.end) )
-            for k,y in enumerate(block.seq):
-                j = block.start + k
-                if y != -1:
-                    fout1.write("%d\t%d\t%d\t\n" % (j, y, tools.int_reverse(y)))
-            fout1.write("********\n")
-        fout1.close()
-        ''' 
         return allHaps  
 
-
-
-
-
-    def enumerate_gap_between_haps(self , haps, clouds_at_index):
-
-        MEC = 0
-        l = len(haps)
-        fout = open("enumerate_fail" ,"w")
-        s = 0
-        while True:
-            if len(haps) == 1 or s+1 >= len(haps):
-                break
-            h1 = haps[s]
-            h2 = haps[s+1]
-            haps.remove(h1)
-            haps.remove(h2)
-
-            if h1.end > h2.start -1:  # have overlap
-
-                print "check intersection"
-                newHaps = self.from_two_haps(h1, h2, clouds_at_index) # satisfy reads intersection and overlap 
-            elif h1.end == h2.start -1: # no gap, no overlap    
-                newHaps = self.from_two_haps(h1, h2, clouds_at_index)
-                if len(newHaps) == 2:
-                    newHaps = self.enumerate_two_haps(h1, h2, clouds_at_index, fout)
-                #if len(newHaps1) < len(newHaps2):
-                    #newHaps = newHaps1
-                #else:
-                    #newHaps = newHaps2
-            else: # have gap 
-                print "enumrate gap"
-                newHaps = self.enumerate_two_haps(h1, h2, clouds_at_index, fout)
-      
-            haps = haps[0:s] + newHaps + haps[s:]
-            s += len(newHaps) - 1
-
-        print "after enumerate gap bwtween haps, number of haplotype", len(haps)
-        for h in haps:
-            print h.start, h.end, h.seq
-        return haps
-
-
-    # enumerate gap between two haps, not optimal solution
-    # dp is optimal solution
-    def enumerate_gap_among_haps(self, haps, clouds_at_index): # every time include 3 haps  
-       
-        MEC = 0
-        #l = len(haps)
-        s = 0
-        for h in haps:
-            h.get_clouds(clouds_at_index)
-        while True:    
-            if len(haps) < 3 or s+2 >= len(haps):
-                break
-            
-            newHaps = list()
-            h1 = haps[s]
-            h2 = haps[s+1]
-            h3 = haps[s+2]
-
-            intersectionNum = len( h1.clouds.intersection(h3.clouds) )
-            
-            print h1.start, h1.end, h3.start, h3.end, "intersectionNum:", intersectionNum
-            if intersectionNum > 2: # only one reads maybe error
-                if h2.start > h1.end and h3.start > h2.end:
-                    dis = h2.start - h1.end + h3.start - h2.end - 2 + 2
-                    if dis < self.enumerate_length_threshold:
-                        print "dis:", dis
-                        haps.remove(h1)
-                        haps.remove(h2)
-                        haps.remove(h3)
-                        newHaps = self.enumerate_three_haps(h1, h2, h3, clouds_at_index)
-                        haps = haps[0:s] + newHaps + haps[s:]
-                        if len(newHaps) == 1:
-                            s += len(newHaps) - 1          
-                        elif len(newHaps) > 1:
-                            s += len(newHaps) - 2          
-            if len(newHaps) == 0:                    
-                s += 1        
-
-        return haps      
-
-
-               
+     
     def enumerate_gap_among_haps2(self, haps, clouds_at_index): # every time may include more than 2 haps  
        
         MEC = 0
         s = 0
         for h in haps:
             h.get_clouds(clouds_at_index)
-        print "debug, orignal haps number", len(haps)    
+        #print "debug, orignal haps number", len(haps)    
         while True:    
             if len(haps) < 2 or s+1 >= len(haps):
                 break 
             newHaps = list()
             waitMerge = list()
             dis = haps[s+1].start - haps[s].end
-            print haps[s].start, haps[s].end, haps[s+1].start, haps[s+1].end
+            #print haps[s].start, haps[s].end, haps[s+1].start, haps[s+1].end
             assert haps[s].end < haps[s+1].start
             intersectionNum = len( haps[s].clouds.intersection(haps[s+1].clouds) )
             #if intersectionNum > 0:
@@ -536,7 +338,7 @@ class DC(object):
                 if intersectionNum < 1:
                     break
                 if i > 3:
-                    break # at most enumerate three haps
+                    break # at most enumerate four haps 
                 assert haps[s+i].start > haps[s+i-1].end
                 dis = dis + haps[s+i].start - haps[s+i-1].end
                 if dis > self.enumerate_length_threshold:
@@ -545,7 +347,7 @@ class DC(object):
                 waitMerge.append(haps[s+i])
                 print haps[s+i].start, haps[s+i].end
                 i += 1
-            print "debug merge haps number ", len(waitMerge), "intersectionNum:", intersectionNum, "dis",  dis
+            #print "debug merge haps number ", len(waitMerge), "intersectionNum:", intersectionNum, "dis",  dis
             
             for h in waitMerge:
                 haps.remove(h)
@@ -557,115 +359,8 @@ class DC(object):
                 s += 1          
             #if len(newHaps) == 0:                    
                 #s += 1        
-
         return haps      
         
-
-    ''' 
-    def enumerate_clouds(start, end, cloudsMid):
-        leftClouds = []
-        rightClouds = []
-        cloudsNum = len(cloudsMid)
-        for i in range(0, pow(2, cloudsNum-1)):
-            # unfinish
-            #
-    '''       
-
-    def enumerate_two_haps(self, h1, h2, clouds_at_index, fout):
-
-        minMEC = 1000000
-        hapsFromEnumerateTwoHaps = list()
-        bestHaps = []
-        dis = h2.start - h1.end - 1
-        print h1.start, h1.end, h2.start, h2.end
-        print "enumerate gap between two haps, dis:", dis 
-        start = h1.start 
-        #if h1.end >= h2.start: # only work for k>=3
-       
-        assert h1.end <= h2.start-1 # no gap to enumerate
-        
-        '''    
-        if h1.end >= h2.start-1: # no gap to enumerate
-            print "two segments have overlap"
-            return self.from_two_haps(h1, h2, clouds_at_index) # satisfy reads intersection and overlap 
-                                              # change return 
-        '''    
-        if dis >= self.enumerate_length_threshold: # need improve
-            print "dis is", dis, "too long to enumerate"   # (1) enumerate cloud (2) run viterbi/dp
-            cloudsMid = list(cloud.get_clouds(h1.end+1, h2.start-1, clouds_at_index))
-            cloudsNum = len(cloudsMid)
-            print cloudsNum 
-            '''
-            b = range(h1.end+1, h2.start-1)
-            h = self.hmm.run_viterbi(b)
-            '''
-            hapsFromEnumerateTwoHaps.append(h1)
-            hapsFromEnumerateTwoHaps.append(h2)
-            return hapsFromEnumerateTwoHaps
-        
-        allPosSeq = tools.enumerate_01_list(dis)    
-        for seq in allPosSeq:
-            for i in range(0,2): # debug maybe h1.seq + seq + tools.reverse(h2.seq)
-                if i == 0:
-                    temp_seq = h1.seq + seq + h2.seq 
-                elif i == 1:
-                    temp_seq = h1.seq + seq + tools.list_reverse(h2.seq) # debug maybe h1.seq + seq + tools.reverse(h2.seq)
-
-                h3 = haplotype.Haplotype(h1.start)
-                h3.set_seq(temp_seq)
-                MEC = self.updata_clouds_support_and_calculate_MEC(h3, clouds_at_index)
-                if MEC < minMEC:
-                    minMEC = MEC
-                    bestHaps = []
-                    bestHaps.append(h3)
-                elif MEC == minMEC:
-                    bestHaps.append(h3)
-        #print "min MEC", minMEC
-        #print "best seq", best_seq
-
-        print "h1.MEC + h2.MEC", h1.MEC + h2.MEC
-        l = len(bestHaps)
-        if l == 0:
-            hapsFromEnumerateTwoHaps.append(h1)
-            hapsFromEnumerateTwoHaps.append(h2)
-            return hapsFromEnumerateTwoHaps
-        if l == 1:
-            print "only one minimal MEC, fill and merge"
-            #h1 = copy.deepcopy(bestHaps[0])  # not right way to use
-            print bestHaps[0].MEC
-            #bestHaps[0].assign_clouds(clouds_at_index) #no need
-            hapsFromEnumerateTwoHaps.append( bestHaps[0] )
-            return hapsFromEnumerateTwoHaps
-        elif l >= 2:   # can check with reads intersection
-            seqs = [] 
-            segments = []
-            for h in bestHaps:
-                print h.seq, h.MEC
-                seqs.append(h.seq)
-
-            print "ll"
-            for c in h1.left_clouds.intersection(h2.left_clouds):
-                print c.name, c.seq 
-            print "lr"    
-            for c in h1.left_clouds.intersection(h2.right_clouds):
-                print c.name, c.seq
-            
-            print "running function divide condense"    
-            segments = tools.divide_condense_mutiple_list(seqs, segments, start)
-            print segments
-            haps = list()
-            l = len(segments)
-            for i in range(l):
-               a = [ -1 if e==-2 else e for e in segments[i][1] ]
-               h = haplotype.Haplotype(segments[i][0])        
-               h.set_seq(a) # cloud not updata
-               h.assign_clouds(clouds_at_index)
-               if len(a) -a.count(-1) >= 2:
-                   hapsFromEnumerateTwoHaps.append(h)
-            return hapsFromEnumerateTwoHaps 
-        else:
-            print "some error happen", l, minMEC
-
 
     def generate_merge_seq(self, hs, label, originalLen, temp_seq, ans):
         if label == originalLen:
@@ -682,98 +377,37 @@ class DC(object):
                     self.generate_merge_seq(hs, label+1, originalLen, temp_seq + seq + tools.list_reverse(hs[label].seq), ans)
         return            
 
-    
-
-
-
-    def enumerate_three_haps(self, h1, h2, h3, clouds_at_index):
-        
-        minMEC = 1000000
-        hapsFrom3Haps = list()
-        bestHaps = []
-        dis12 = h2.start - h1.end - 1
-        dis23 = h3.start - h2.end - 1
-        
-        start = h1.start 
-
-        print "enumerate 3 haps", h1.start, h1.end, h2.start, h2.end, h3.start, h3.end 
-        allPosSeq12 = tools.enumerate_01_list(dis12)    
-        allPosSeq23 = tools.enumerate_01_list(dis23)    
-        for seq12 in allPosSeq12:
-            for seq23 in allPosSeq23:
-                for i in range(0,4): # debug maybe h1.seq + seq + tools.reverse(h2.seq)
-                    if i == 0:
-                        temp_seq = h1.seq + seq12 + h2.seq + seq23 + h3.seq
-                    elif i == 1:
-                        temp_seq = h1.seq + seq12 + tools.list_reverse(h2.seq) + seq23 + h3.seq
-                    elif i == 2:
-                        temp_seq = h1.seq + seq12 + h2.seq + seq23 + tools.list_reverse(h3.seq)
-                    elif i == 3:
-                        temp_seq = h1.seq + seq12 + tools.list_reverse(h2.seq) + seq23 + tools.list_reverse(h3.seq)
-                    #print "debug", temp_seq  
-                    h4 = haplotype.Haplotype(h1.start)
-                    h4.set_seq(temp_seq)
-                    MEC = self.updata_clouds_support_and_calculate_MEC(h4, clouds_at_index)
-                    if MEC < minMEC:
-                        minMEC = MEC
-                        bestHaps = []
-                        bestHaps.append(h4)
-                    elif MEC == minMEC:
-                        bestHaps.append(h4)
-
-        l = len(bestHaps)
-        if l == 0:
-            hapsFrom3Haps.append(h1)
-            hapsFrom3Haps.append(h2)
-            hapsFrom3Haps.append(h3)
-            return hapsFrom3Haps
-        if l == 1:
-            print "only one minimal MEC, fill and merge", minMEC
-            #bestHaps[0].assign_clouds(clouds_at_index)
-            hapsFrom3Haps.append( bestHaps[0] )
-            #sys.exit()
-            return hapsFrom3Haps
-
-        elif l >= 2:
-            seqs = [] 
-            segments = []
-            for h in bestHaps:
-                print h.seq
-                seqs.append(h.seq)
-            print "running function divide condense"    
-            segments = tools.divide_condense_mutiple_list(seqs, segments, start)
-            print segments
-            haps = list()
-            l = len(segments)
-            for i in range(l):
-               a = [ -1 if e==-2 else e for e in segments[i][1] ]
-               h = haplotype.Haplotype(segments[i][0])        
-               h.set_seq(a) # cloud not updata
-               h.assign_clouds(clouds_at_index)
-               if len(a) -a.count(-1) >= 2:
-                   hapsFrom3Haps.append(h)
-            return hapsFrom3Haps 
-        else:
-            print "some error happen", l, minMEC
-
-
     def enumerate_haps(self, hs, clouds_at_index):
        
-        print "enumerate haps number",len(hs) 
-        minMEC = 1000000
-        hapsFromHs = list()
-        bestHaps = []
-        start = hs[0].start 
+        #print "enumerate haps number",len(hs) 
+
         originalLen = len(hs)    
-        assert originalLen >= 2
+        #assert originalLen >= 2 
+        #for h in hs:
+            #print h.start, h.end, h.seq
+
         temp_seq = hs[0].seq  
         ans = list()
-        for h in hs:
-            print h.start, h.end, h.seq
         self.generate_merge_seq(hs, 1, originalLen, temp_seq, ans)
+
+        #hapsFromHs = list()
+        start = hs[0].start 
+        bestHaps, hapsFromHs = self.find_minimal_MEC([], ans, [], start, clouds_at_index)
+
+        l = len(hapsFromHs)
+        if l == 1:
+            #print "only one minimal MEC, fill and merge", hapsFromHs[0].MEC
+            return hapsFromHs
+        else:
+            bestBestHaps = self.deal_with_same_MEC(hs[0], hs[-1], bestHaps, clouds_at_index)
+            if len(bestBestHaps) == 1:
+                return bestBestHaps
+        return hapsFromHs    
+
+        '''
         for temp_seq in ans:
             #print "debug", temp_seq  
-            h4 = haplotype.Haplotype(hs[0].start)
+            h4 = haplotype.Haplotype(start)
             h4.set_seq(temp_seq)
             MEC = self.updata_clouds_support_and_calculate_MEC(h4, clouds_at_index)
             if MEC < minMEC:
@@ -787,8 +421,6 @@ class DC(object):
         if l == 0:
             return hs
         if l == 1:
-            print "only one minimal MEC, fill and merge", minMEC
-            hapsFromHs.append( bestHaps[0] )
             return hapsFromHs
         elif l >= 2:
             seqs = [] 
@@ -810,37 +442,7 @@ class DC(object):
                 else:
                     hapsFromHs = list()
                 #return self.deal_with_same_MEC(hs[0], hs[-1], clouds_at_index)
-                '''
-                print "ll"
-                hapsFromHs = self.from_two_haps(hs[0], hs[-1], clouds_at_index)
-                if len(hapsFromHs) == 1:
-                    return hapsFromHs
-                else:
-                    hapsFromHs = list()
-
-                cloudsSupportTwoPos = clouds_at_index[hs[0].end].intersection(clouds_at_index[hs[-1].start])
-                ss = ""
-                for c in cloudsSupportTwoPos:
-                    print "support two pos reads", c.name, c.seq
-                    print hs[0].end, hs[-1].start
-                    ss = c[hs[0].end : hs[-1].start+1]
-                    print "ss", ss
-                #sys.exit()
             
-                # merge haplotype according to cloudsSupportTwoPos
-                if len(ss) >0 and hs[0].end + 1 == hs[-1].start:
-                    if (ss[0] == hs[0][-1]  and ss[-1]== hs[-1][0]) or (ss[0] != hs[0][-1]  and ss[-1] != hs[-1][0]):
-                        temp_seq = hs[0].seq + hs[-1].seq
-                    else:
-                        temp_seq = hs[0].seq + tools.list_reverse(hs[-1].seq)
-                        
-                    h = haplotype.Haplotype(hs[0].start)        
-                    h.set_seq(temp_seq) # cloud not updata
-                    h.assign_clouds(clouds_at_index)
-                    hapsFromHs.append(h)
-                    print "merge haplotype according to cloudsSupportTwoPos"
-                    return hapsFromHs
-                '''    
             print "again into enumerate"
             #sys.exit()
             for i in range(l):
@@ -853,22 +455,29 @@ class DC(object):
             return hapsFromHs 
         else:
             print "some error happen", l, minMEC
-
+        '''  
     def deal_with_same_MEC(self, h1, h2, bestHaps, clouds_at_index):
         
-        print "deal with same MEC"
+        #print "deal with same MEC"
+
+        '''
+        print "ll"
+        hapsFromHs = self.from_two_haps(hs[0], hs[-1], clouds_at_index)
+        if len(hapsFromHs) == 1:
+            return hapsFromHs
+        else:
+            hapsFromHs = list()
+        '''    
          
-        print h1.end, h2.start
-        cloudsSupportTwoPos = clouds_at_index[h1.end].intersection(clouds_at_index[h2.start])
-        seq = []  
+        #print h1.end, h2.start
         minMEC = 1000000
         bestBestHaps = []
-        print h1.end, h2.start
+        #print h1.end, h2.start
         if h1.end + 1 == h2.start:
             for h in bestHaps:
-                print h.seq
+                #print h.seq
                 tempSeq = h[h.start : h1.end] + [-1,-1] + h[h2.start+1 : h.end+1]
-                print tempSeq
+                #print tempSeq
                 newH = haplotype.Haplotype(h.start)
                 newH.set_seq(tempSeq)
                 MEC = newH.assign_clouds(clouds_at_index)
@@ -881,7 +490,9 @@ class DC(object):
                     bestBestHaps.append(newH)
             if len(bestBestHaps) >= 2:
                 print "same MEC try one fail"
+                cloudsSupportTwoPos = clouds_at_index[h1.end].intersection(clouds_at_index[h2.start])
                 bestBestHaps = list()
+                seq = [] 
                 for c in cloudsSupportTwoPos:
                     print "support two pos reads", c.name, c.seq
                     ss = c[h1.end : h2.start+1]
@@ -890,6 +501,17 @@ class DC(object):
                 if len(seq) >= 1:
                     ss = tools.most_frequency_list(seq)
                     print "most ss", ss
+                    # long reads more weight
+                    '''
+                    if len(ss) == 0:
+                        for c in cloudsSupportTwoPos:
+                            if len(c.seq) > 2: 
+                                ss = c[h1.end : h2.start+1]
+                                seq.append(ss)
+                        if len(seq) >= 1:
+                            ss = tools.most_frequency_list(seq)    
+                            print "long reads more weight, most ss", ss
+                    '''                 
                     if len(ss) > 0:
                         if (ss[0] == h1[-1]  and ss[-1]== h2[0]) or (ss[0] != h1[-1]  and ss[-1] != h2[0]):
                             temp_seq = h1.seq + h2.seq
@@ -904,6 +526,35 @@ class DC(object):
                 print "same MEC try two to be continue"
         return bestBestHaps  
         #sys.exit()
+
+        ''' # always half half support 
+        cloudsSupportTwoPos = self.contigs_at_index[h1.end].intersection(self.contigs_at_index[h2.start])
+        bestBestHaps = list()
+        allIndex =[]  
+        for c in cloudsSupportTwoPos:
+            print "support two pos reads", c.name, c.seq
+            minScore = 10000
+            index = []
+            for i in range(len(bestHaps)):
+                score = min ( tools.hamming_distance(c.seq, bestHaps[i][c.start : c.end+1]), 
+                        tools.hamming_distance(tools.list_reverse(c.seq), bestHaps[i][c.start : c.end+1]) )
+                print score
+                if score < minScore:
+                    minScore = score
+                    index = []
+                    index.append(i)
+                elif score == minScore:
+                    index.append(i)
+            print "this reads support", index
+            allIndex.extend(index)
+        print "allIndex", allIndex    
+        a = collections.Counter(allIndex).most_common(2)   
+        print "support", a
+        if len(a) == 1 or ( len(a) >= 2 and a[0][1] > a[1][1] ):
+            bestBestHaps.append(bestHaps[ a[0][0] ])
+            return bestBestHaps
+        '''  
+
 
 
     #def updata_clouds_support_and_calculate_MEC(self, h1, clouds):
@@ -1053,7 +704,6 @@ class DC(object):
             h.set_seq(temp_seq)
             haps.append(h)
 
-        #self.unsure_clouds = set()
         for h in haps:
             h.assign_clouds(clouds_at_index)  
             #if h.check_clouds_intersection() == False:
@@ -1066,8 +716,6 @@ class DC(object):
     ############################################
     # very low coverage like 3
     
-
-
     #07/Jan./2019
     def check_bit_complement2(self, boolKmers, kmers, label): # after talking code with yu, maybe more reasonable 
         lenKmer = len(boolKmers) # bool_k_mers a list of kmer which not include -1
@@ -1224,19 +872,6 @@ class DC(object):
             return False    
 
 
-    def merge_haps(self, haps): # useless
-        
-        l = len(haps)
-        print "before merge, number of haplotype", l
-        i = 0
-        while True:
-            while ( l>=2 and self.from_two_haps(haps[i], haps[i+1]) ):
-                haps.remove(haps[i+1])
-                l = len(haps) - i
-            i += 1
-            if i+1 >= len(haps):
-                break
-        print "after merge, number of haplotype", len(haps)
         
     def from_two_haps(self, h1, h2, clouds_at_index):  # part2 change
         assert h1.start < h2.start and h1.end < h2.end
@@ -1249,11 +884,9 @@ class DC(object):
             for c in h1.right_clouds:
                 print c,
 
-
         assert h1.check_clouds_intersection() # should not have
         assert h2.check_clouds_intersection() # intersection
        
-
         llR = h1.left_clouds.intersection(h2.left_clouds)
         lrR = h1.left_clouds.intersection(h2.right_clouds)
         rlR = h1.right_clouds.intersection(h2.left_clouds)
@@ -1361,4 +994,281 @@ class DC(object):
             hapsFromConnectTwoHaps.append(h2)
             print "reads intersection provide no info to merge, but overlap may helpful, need imporve "
             return hapsFromConnectTwoHaps
+
+
+    ''' # unfinish code
+    def dp(self, haps):
+        addHaps = []
+        l = len(haps)
+        for i in range(l-1):
+
+            h1 = haps[i] 
+            h2 = haps[i+1]
+            start = h1.end + 1 
+            end = h2.start - 1
+            if end <= start + 10:
+                continue
+            b = range(start, end+1) 
+            h = haplotype.Haplotye(start)
+            s = run_viterbi(b)
+
+    def enumerate_clouds(start, end, cloudsMid):
+        leftClouds = []
+        rightClouds = []
+        cloudsNum = len(cloudsMid)
+        for i in range(0, pow(2, cloudsNum-1)):
+            # unfinish
+            #
+    '''        
                 
+    ''' # useless code            
+    def enumerate_gap_between_haps(self , haps, clouds_at_index):
+
+        MEC = 0
+        l = len(haps)
+        fout = open("enumerate_fail" ,"w")
+        s = 0
+        while True:
+            if len(haps) == 1 or s+1 >= len(haps):
+                break
+            h1 = haps[s]
+            h2 = haps[s+1]
+            haps.remove(h1)
+            haps.remove(h2)
+            if h1.end > h2.start -1:  # have overlap
+                print "check intersection"
+                newHaps = self.from_two_haps(h1, h2, clouds_at_index) # satisfy reads intersection and overlap 
+            elif h1.end == h2.start -1: # no gap, no overlap    
+                newHaps = self.from_two_haps(h1, h2, clouds_at_index)
+                if len(newHaps) == 2:
+                    newHaps = self.enumerate_two_haps(h1, h2, clouds_at_index, fout)
+                #if len(newHaps1) < len(newHaps2):
+                    #newHaps = newHaps1
+                #else:
+                    #newHaps = newHaps2
+            else: # have gap 
+                print "enumrate gap"
+                newHaps = self.enumerate_two_haps(h1, h2, clouds_at_index, fout)
+            haps = haps[0:s] + newHaps + haps[s:]
+            s += len(newHaps) - 1
+        print "after enumerate gap bwtween haps, number of haplotype", len(haps)
+        for h in haps:
+            print h.start, h.end, h.seq
+        return haps
+
+
+    def enumerate_two_haps(self, h1, h2, clouds_at_index, fout):
+
+        minMEC = 1000000
+        hapsFromEnumerateTwoHaps = list()
+        bestHaps = []
+        dis = h2.start - h1.end - 1
+        print h1.start, h1.end, h2.start, h2.end
+        print "enumerate gap between two haps, dis:", dis 
+        start = h1.start 
+        #if h1.end >= h2.start: # only work for k>=3
+       
+        assert h1.end <= h2.start-1 # no gap to enumerate
+        
+        
+        #if h1.end >= h2.start-1: # no gap to enumerate
+            #print "two segments have overlap"
+            #return self.from_two_haps(h1, h2, clouds_at_index) # satisfy reads intersection and overlap 
+                                              # change return 
+          
+        if dis >= self.enumerate_length_threshold: # need improve
+            print "dis is", dis, "too long to enumerate"   # (1) enumerate cloud (2) run viterbi/dp
+            cloudsMid = list(cloud.get_clouds(h1.end+1, h2.start-1, clouds_at_index))
+            cloudsNum = len(cloudsMid)
+            print cloudsNum 
+            
+            #b = range(h1.end+1, h2.start-1)
+            #h = self.hmm.run_viterbi(b)
+            
+            hapsFromEnumerateTwoHaps.append(h1)
+            hapsFromEnumerateTwoHaps.append(h2)
+            return hapsFromEnumerateTwoHaps
+        
+        allPosSeq = tools.enumerate_01_list(dis)    
+        for seq in allPosSeq:
+            for i in range(0,2): # debug maybe h1.seq + seq + tools.reverse(h2.seq)
+                if i == 0:
+                    temp_seq = h1.seq + seq + h2.seq 
+                elif i == 1:
+                    temp_seq = h1.seq + seq + tools.list_reverse(h2.seq) # debug maybe h1.seq + seq + tools.reverse(h2.seq)
+
+                h3 = haplotype.Haplotype(h1.start)
+                h3.set_seq(temp_seq)
+                MEC = self.updata_clouds_support_and_calculate_MEC(h3, clouds_at_index)
+                if MEC < minMEC:
+                    minMEC = MEC
+                    bestHaps = []
+                    bestHaps.append(h3)
+                elif MEC == minMEC:
+                    bestHaps.append(h3)
+        #print "min MEC", minMEC
+        #print "best seq", best_seq
+
+        print "h1.MEC + h2.MEC", h1.MEC + h2.MEC
+        l = len(bestHaps)
+        if l == 0:
+            hapsFromEnumerateTwoHaps.append(h1)
+            hapsFromEnumerateTwoHaps.append(h2)
+            return hapsFromEnumerateTwoHaps
+        if l == 1:
+            print "only one minimal MEC, fill and merge"
+            #h1 = copy.deepcopy(bestHaps[0])  # not right way to use
+            print bestHaps[0].MEC
+            #bestHaps[0].assign_clouds(clouds_at_index) #no need
+            hapsFromEnumerateTwoHaps.append( bestHaps[0] )
+            return hapsFromEnumerateTwoHaps
+        elif l >= 2:   # can check with reads intersection
+            seqs = [] 
+            segments = []
+            for h in bestHaps:
+                print h.seq, h.MEC
+                seqs.append(h.seq)
+
+            print "ll"
+            for c in h1.left_clouds.intersection(h2.left_clouds):
+                print c.name, c.seq 
+            print "lr"    
+            for c in h1.left_clouds.intersection(h2.right_clouds):
+                print c.name, c.seq
+            
+            print "running function divide condense"    
+            segments = tools.divide_condense_mutiple_list(seqs, segments, start)
+            print segments
+            haps = list()
+            l = len(segments)
+            for i in range(l):
+               a = [ -1 if e==-2 else e for e in segments[i][1] ]
+               h = haplotype.Haplotype(segments[i][0])        
+               h.set_seq(a) # cloud not updata
+               h.assign_clouds(clouds_at_index)
+               if len(a) -a.count(-1) >= 2:
+                   hapsFromEnumerateTwoHaps.append(h)
+            return hapsFromEnumerateTwoHaps 
+        else:
+            print "some error happen", l, minMEC
+
+        
+    def enumerate_gap_among_haps(self, haps, clouds_at_index): # every time include 3 haps  
+       
+        MEC = 0
+        #l = len(haps)
+        s = 0
+        for h in haps:
+            h.get_clouds(clouds_at_index)
+        while True:    
+            if len(haps) < 3 or s+2 >= len(haps):
+                break
+            
+            newHaps = list()
+            h1 = haps[s]
+            h2 = haps[s+1]
+            h3 = haps[s+2]
+
+            intersectionNum = len( h1.clouds.intersection(h3.clouds) )
+            
+            print h1.start, h1.end, h3.start, h3.end, "intersectionNum:", intersectionNum
+            if intersectionNum > 2: # only one reads maybe error
+                if h2.start > h1.end and h3.start > h2.end:
+                    dis = h2.start - h1.end + h3.start - h2.end - 2 + 2
+                    if dis < self.enumerate_length_threshold:
+                        print "dis:", dis
+                        haps.remove(h1)
+                        haps.remove(h2)
+                        haps.remove(h3)
+                        newHaps = self.enumerate_three_haps(h1, h2, h3, clouds_at_index)
+                        haps = haps[0:s] + newHaps + haps[s:]
+                        if len(newHaps) == 1:
+                            s += len(newHaps) - 1          
+                        elif len(newHaps) > 1:
+                            s += len(newHaps) - 2          
+            if len(newHaps) == 0:                    
+                s += 1        
+        return haps     
+
+    def enumerate_three_haps(self, h1, h2, h3, clouds_at_index):
+        
+        minMEC = 1000000
+        hapsFrom3Haps = list()
+        bestHaps = []
+        dis12 = h2.start - h1.end - 1
+        dis23 = h3.start - h2.end - 1
+        start = h1.start 
+        print "enumerate 3 haps", h1.start, h1.end, h2.start, h2.end, h3.start, h3.end 
+        allPosSeq12 = tools.enumerate_01_list(dis12)    
+        allPosSeq23 = tools.enumerate_01_list(dis23)    
+        for seq12 in allPosSeq12:
+            for seq23 in allPosSeq23:
+                for i in range(0,4): # debug maybe h1.seq + seq + tools.reverse(h2.seq)
+                    if i == 0:
+                        temp_seq = h1.seq + seq12 + h2.seq + seq23 + h3.seq
+                    elif i == 1:
+                        temp_seq = h1.seq + seq12 + tools.list_reverse(h2.seq) + seq23 + h3.seq
+                    elif i == 2:
+                        temp_seq = h1.seq + seq12 + h2.seq + seq23 + tools.list_reverse(h3.seq)
+                    elif i == 3:
+                        temp_seq = h1.seq + seq12 + tools.list_reverse(h2.seq) + seq23 + tools.list_reverse(h3.seq)
+                    #print "debug", temp_seq  
+                    h4 = haplotype.Haplotype(h1.start)
+                    h4.set_seq(temp_seq)
+                    MEC = self.updata_clouds_support_and_calculate_MEC(h4, clouds_at_index)
+                    if MEC < minMEC:
+                        minMEC = MEC
+                        bestHaps = []
+                        bestHaps.append(h4)
+                    elif MEC == minMEC:
+                        bestHaps.append(h4)
+
+        l = len(bestHaps)
+        if l == 0:
+            hapsFrom3Haps.append(h1)
+            hapsFrom3Haps.append(h2)
+            hapsFrom3Haps.append(h3)
+            return hapsFrom3Haps
+        if l == 1:
+            print "only one minimal MEC, fill and merge", minMEC
+            #bestHaps[0].assign_clouds(clouds_at_index)
+            hapsFrom3Haps.append( bestHaps[0] )
+            #sys.exit()
+            return hapsFrom3Haps
+
+        elif l >= 2:
+            seqs = [] 
+            segments = []
+            for h in bestHaps:
+                print h.seq
+                seqs.append(h.seq)
+            print "running function divide condense"    
+            segments = tools.divide_condense_mutiple_list(seqs, segments, start)
+            print segments
+            haps = list()
+            l = len(segments)
+            for i in range(l):
+               a = [ -1 if e==-2 else e for e in segments[i][1] ]
+               h = haplotype.Haplotype(segments[i][0])        
+               h.set_seq(a) # cloud not updata
+               h.assign_clouds(clouds_at_index)
+               if len(a) -a.count(-1) >= 2:
+                   hapsFrom3Haps.append(h)
+            return hapsFrom3Haps 
+        else:
+            print "some error happen", l, minMEC
+
+    def merge_haps(self, haps): # useless
+        
+        l = len(haps)
+        print "before merge, number of haplotype", l
+        i = 0
+        while True:
+            while ( l>=2 and self.from_two_haps(haps[i], haps[i+1]) ):
+                haps.remove(haps[i+1])
+                l = len(haps) - i
+            i += 1
+            if i+1 >= len(haps):
+                break
+        print "after merge, number of haplotype", len(haps)
+    '''   
